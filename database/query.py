@@ -40,5 +40,31 @@ def create_table():
 with get_connect() as db: 
     with db.cursor() as dbc: 
         dbc.execute(create_table()) 
-      
+    db.commit()
 create_table()
+
+def save_users(chat_id, fullname, phone, username=None): 
+    try:
+        with get_connect() as db:
+            with db.cursor() as dbc:
+                dbc.execute("""
+                    INSERT INTO users(chat_id, name, phone, username) 
+                    VALUES (%s, %s, %s, %s)
+                    ON CONFLICT (chat_id) DO NOTHING
+                """, (chat_id, fullname, phone, username))
+            db.commit()  
+        return True
+    except Exception as e:
+        print(f"Error saving user: {e}")
+        return False
+
+
+def is_register_byChatId(chat_id): 
+    try: 
+        with get_connect() as db:
+            with db.cursor() as dbc:
+                dbc.execute("SELECT id FROM users WHERE chat_id = %s", (chat_id,))
+                return dbc.fetchone() is not None  
+    except Exception as e: 
+        print(f"Error checking user: {e}")
+        return False

@@ -32,3 +32,31 @@ ERR_NAME = """
 			Iltimos, faqat harflardan iborat ism kiriting.
 			Masalan: Ali Valiey, Dilnoza Raximova
 """
+
+SUCCES_REG = """
+
+✅ Tabriklaymiz, ro‘yxatdan o‘tdingiz! 🎉
+
+📚 Endi siz:
+🔍 Kitoblarni qidirishingiz
+🛒 Buyurtma berishingiz
+⭐ Sevimli kitoblaringizni saqlashingiz
+🧾 Buyurtmalar tarixini kuzatishingiz
+mumkin!
+
+📖 Boshlash uchun pastdagi menyudan kerakli bo‘limni tanlang va kitoblar olamiga sho‘ng‘ing!"""
+
+
+ALREADY_IN = """
+🔔 Siz allaqachon ro‘yxatdan o‘tgansiz! ✅
+
+📚 Endi bemalol:
+🔍 Kitoblarni qidirishingiz
+🛒 Buyurtma berishingiz
+⭐ Sevimlilarga saqlashingiz
+🧾 Buyurtma tarixini ko‘rishingiz
+mumkin.
+
+📖 Pastdagi menyudan kerakli bo‘limni tanlang va davom eting.
+
+"""
