@@ -12,6 +12,6 @@ register_kb = ReplyKeyboardMarkup(
 
 phoneNumber_kb = ReplyKeyboardMarkup(
 	keyboard=[
-		KeyboardButton(text="📞 Telefon raqam ulashish",request_contact=True)
+		[KeyboardButton(text="📞 Telefon raqam ulashish",request_contact=True)]
 	],resize_keyboard=True
 )
