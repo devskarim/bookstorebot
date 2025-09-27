@@ -17,3 +17,13 @@ Siz ham o‘zingizga mos dunyoni kashf qiling!
 GET_NAME = """📝 Ismingizni kiriting \n
 				Sizni yaxshiroq tanishimiz va buyurtmalaringizni qulayroq boshqarishimiz uchun ismingizni kiriting.\n
 				✍️ Masalan: Karimov Izzatulloh"""
+
+
+GET_PHONE = """
+
+📞 Telefon raqamingizni kiriting \n
+Siz bilan bog‘lanish va buyurtmalaringizni yetkazib berishimiz uchun telefon raqamingizni kiriting. \n
+Masalan: +998901234567 \n 
+\n
+🔐 Telefon raqamingiz faqat sizning buyurtmalaringiz uchun ishlatiladi va uchinchi shaxslarga berilmaydi.
+"""
