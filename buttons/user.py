@@ -1,6 +1,6 @@
 from aiogram.types import (
 	ReplyKeyboardMarkup, ReplyKeyboardRemove, 
-	KeyboardButton, InlineKeyboardButton, InlineKeyboardButton
+	KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
 )
 
 register_kb = ReplyKeyboardMarkup( 
@@ -38,5 +38,21 @@ after_menukb = ReplyKeyboardMarkup(
 send_toAdminkb = ReplyKeyboardMarkup(
 	keyboard=[
 		[KeyboardButton(text="Yuborish")]
+	],resize_keyboard=True
+)
+
+searchClickkb = InlineKeyboardMarkup(
+	inline_keyboard= [
+		[InlineKeyboardButton(text="📚 Title", callback_data="title")],
+        [InlineKeyboardButton(text="🎭 Genre", callback_data="genre")],
+        [InlineKeyboardButton(text="✍️ Author", callback_data="author")],
+        [InlineKeyboardButton(text="⬅️ Back", callback_data="back")]
+	]
+)
+
+
+all_kb = ReplyKeyboardMarkup (
+	keyboard= [
+		[KeyboardButton(text="⬅️ back"), KeyboardButton(text="📋 Main menu")]
 	],resize_keyboard=True
 )

@@ -4,6 +4,7 @@ from aiogram.filters import Command, CommandStart
 
 from buttons import REG_TEXT, GET_NAME, GET_PHONE,ERR_NAME, SUCCES_REG,ALREADY_IN	
 from buttons import register_kb, phoneNumber_kb, menu_kb, after_menukb, send_toAdminkb
+from buttons import searchClickkb, all_kb
 from buttons import CONTACT_ADMIN
 
 from states import Register, FSMContext
@@ -82,3 +83,26 @@ async def contact_admin(message:Message):
 @user_router.message(F.text=="Yuborish") 
 async def send_admin(message:Message): 
     await message.answer(CONTACT_ADMIN, reply_markup=menu_kb)
+    
+
+@user_router.message(F.text == "🔎 Search") 
+async def search_btn(message:Message): 
+    await message.answer("Search By: ", reply_markup=searchClickkb)
+    
+
+@user_router.message(F.text== "📚 All") 
+async def all_handler(message: Message):
+    await message.answer("Barcha kitoblarni ko'rish demo", reply_markup=all_kb) 
+    
+@user_router.message(F.text=="💸 Discount")
+async def discount_handlar(message: Message):
+    await message.answer("Diskountdagi kitoblar: (DEMO)") 
+    
+@user_router.message(F.text=="🆕 New")
+async def new_hanler(message: Message): 
+    await message.answer("So'ngi kelgan kitoblar. (Demo)") 
+
+@user_router.message(F.text=="⬅️ back") 
+async def back_menu(message:Message):
+    await message.answer("📋 Main menu", reply_markup=after_menukb)
+    
