@@ -3,7 +3,7 @@ from aiogram import Router, F
 from aiogram.filters import Command, CommandStart
 
 from buttons import REG_TEXT, GET_NAME, GET_PHONE,ERR_NAME, SUCCES_REG,ALREADY_IN	
-from buttons import register_kb, phoneNumber_kb, menu_kb
+from buttons import register_kb, phoneNumber_kb, menu_kb, after_menukb
 
 from states import Register, FSMContext
 from filters import validate_name,validate_phone
@@ -61,7 +61,11 @@ async def get_phone(message:Message, state: FSMContext):
         
 
         
-@user_router.message(F.text=="Menu")
+@user_router.message(F.text=="📋 Menu")
 async def menu_btn(message:Message, state:FSMContext): 
-    await message.answer()
+    await message.answer("📋 Asosiy menyu:",reply_markup=after_menukb)
     
+
+@user_router.message(F.text=="⬅️ Back") 
+async def back_menu(message:Message):
+    await message.answer("📋 Main menu", reply_markup=menu_kb)

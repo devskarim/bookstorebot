@@ -18,8 +18,19 @@ phoneNumber_kb = ReplyKeyboardMarkup(
 
 menu_kb = ReplyKeyboardMarkup(
 	keyboard=[
-		[KeyboardButton(text=("Menu"))], 
-		[KeyboardButton(text=("Order"))], 
-		[KeyboardButton(text=("Contack"))]
+		[KeyboardButton(text="📋 Menu")],
+    [KeyboardButton(text="🛒 Order")],
+    [KeyboardButton(text="📞 Contact")]
 	],resize_keyboard=True
 )
+
+
+after_menukb = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text="🔎 Search"), KeyboardButton(text="📚 All")],
+        [KeyboardButton(text="💸 Discount"), KeyboardButton(text="🆕 New")],
+        [KeyboardButton(text="⬅️ Back")]
+    ],
+    resize_keyboard=True
+)
+

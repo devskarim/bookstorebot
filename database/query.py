@@ -68,3 +68,16 @@ def is_register_byChatId(chat_id):
     except Exception as e: 
         print(f"Error checking user: {e}")
         return False
+
+
+def is_admin(chat_id):
+    query = "SELECT is_admin FROM users WHERE chat_id = %s"
+    try:
+        with get_connect() as db:
+            with db.cursor() as dbc:
+                dbc.execute(query, (chat_id,))
+                result = dbc.fetchone()
+                return bool(result and result[0])  
+    except Exception as e:
+        print(f"Error checking admin status: {e}")
+        return False
