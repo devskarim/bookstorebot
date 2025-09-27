@@ -24,6 +24,11 @@ GET_PHONE = """
 📞 Telefon raqamingizni kiriting \n
 Siz bilan bog‘lanish va buyurtmalaringizni yetkazib berishimiz uchun telefon raqamingizni kiriting. \n
 Masalan: +998901234567 \n 
-\n
 🔐 Telefon raqamingiz faqat sizning buyurtmalaringiz uchun ishlatiladi va uchinchi shaxslarga berilmaydi.
+"""
+
+ERR_NAME = """ 
+						❌ Ism noto‘g‘ri formatda!
+			Iltimos, faqat harflardan iborat ism kiriting.
+			Masalan: Ali Valiey, Dilnoza Raximova
 """
