@@ -3,7 +3,8 @@ from aiogram import Router, F
 from aiogram.filters import Command, CommandStart
 
 from buttons import REG_TEXT, GET_NAME, GET_PHONE,ERR_NAME, SUCCES_REG,ALREADY_IN	
-from buttons import register_kb, phoneNumber_kb, menu_kb, after_menukb
+from buttons import register_kb, phoneNumber_kb, menu_kb, after_menukb, send_toAdminkb
+from buttons import CONTACT_ADMIN
 
 from states import Register, FSMContext
 from filters import validate_name,validate_phone
@@ -69,3 +70,15 @@ async def menu_btn(message:Message, state:FSMContext):
 @user_router.message(F.text=="⬅️ Back") 
 async def back_menu(message:Message):
     await message.answer("📋 Main menu", reply_markup=menu_kb)
+    
+
+@user_router.message(F.text=="📞 Contact") 
+async def contact_admin(message:Message): 
+    await message.answer("""📩 Savollaringiz bormi?
+  Biz har doim yordam berishga tayyormiz!
+  Savvolarigizni yozing va Pastagi Yuborish tugmasini bosing""", reply_markup=send_toAdminkb)
+  
+
+@user_router.message(F.text=="Yuborish") 
+async def send_admin(message:Message): 
+    await message.answer(CONTACT_ADMIN, reply_markup=menu_kb)

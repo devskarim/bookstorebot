@@ -34,3 +34,9 @@ after_menukb = ReplyKeyboardMarkup(
     resize_keyboard=True
 )
 
+
+send_toAdminkb = ReplyKeyboardMarkup(
+	keyboard=[
+		[KeyboardButton(text="Yuborish")]
+	],resize_keyboard=True
+)

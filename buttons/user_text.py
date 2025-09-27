@@ -60,3 +60,10 @@ mumkin.
 📖 Pastdagi menyudan kerakli bo‘limni tanlang va davom eting.
 
 """
+
+CONTACT_ADMIN = """
+📨 Xabar yuborildi!
+Admin tezda javob beradi.
+Rahmat! 💙
+
+"""
