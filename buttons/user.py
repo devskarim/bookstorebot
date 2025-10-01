@@ -18,9 +18,16 @@ phoneNumber_kb = ReplyKeyboardMarkup(
 
 menu_kb = ReplyKeyboardMarkup(
 	keyboard=[
-		[KeyboardButton(text="📋 Menu")],
-    [KeyboardButton(text="🛒 Order")],
-    [KeyboardButton(text="📞 Contact")]
+		[KeyboardButton(text="📋 Menu"), KeyboardButton(text="🛒 Order")],
+    [KeyboardButton(text="📞 Contact"),KeyboardButton(text="👤 Profil")],
+	],resize_keyboard=True
+)
+
+profile_kb = ReplyKeyboardMarkup(
+	keyboard=[
+        [KeyboardButton(text="✏️ Tahrirlash"), KeyboardButton(text="⭐ Sevimlilar")],
+        [KeyboardButton(text="📄 Ma’lumotlarim"),KeyboardButton(text="❌ Accountni o‘chirish")], 
+				[KeyboardButton(text="⬅️ Back")]
 	],resize_keyboard=True
 )
 
@@ -37,7 +44,7 @@ after_menukb = ReplyKeyboardMarkup(
 
 send_toAdminkb = ReplyKeyboardMarkup(
 	keyboard=[
-		[KeyboardButton(text="Yuborish")]
+		[KeyboardButton(text="📤 Yuborish"), KeyboardButton(text="❌ Bekor qilish")]
 	],resize_keyboard=True
 )
 

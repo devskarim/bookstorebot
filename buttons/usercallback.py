@@ -6,7 +6,7 @@ usercall_router = Router()
 
 @usercall_router.callback_query(F.data == "title")
 async def get_title(callback: CallbackQuery):
-    await callback.message.answer("Title bo'yicha qidirish Demo.")
+    await callback.message.edit_text("title bo'yicha")
     await callback.answer()
 
 @usercall_router.callback_query(F.data == "genre")
