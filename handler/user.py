@@ -50,10 +50,10 @@ async def get_name(message: Message, state: FSMContext):
         await message.answer(ERR_NAME)
 
 
-@user_router.message(Register.phone) 
-async def get_phone(message:Message, state: FSMContext):
-    phone = message.contact.phone_number  
-    ok, normalized = validate_uz_phone(phone)
+@user_router.message(Register.phone)
+async def get_phone(message: Message, state: FSMContext):
+    phone_input = message.contact.phone_number if message.contact else (message.text or "")
+    ok, normalized = validate_uz_phone(phone_input)
 
     if ok:
         await state.update_data(phone=normalized)
@@ -69,9 +69,9 @@ async def get_phone(message:Message, state: FSMContext):
         await state.clear()
     else:
         await message.answer(
-            "❌ Telefon raqami noto'g'ri. Iltimos, +998901234567 formatida yuboring."
+            "❌ Telefon raqami noto'g'ri. Iltimos, +998901234567 formatida yuboring yoki 'Telefon raqamni yuborish' tugmasidan foydalaning."
         )
-        
+
 
         
 @user_router.message(F.text=="📋 Menu")
