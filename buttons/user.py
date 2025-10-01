@@ -85,3 +85,52 @@ order_kb = ReplyKeyboardMarkup(
 		[KeyboardButton(text="⭐️ Sevimlilarga qoshish"), KeyboardButton(text="⬅️ Back")]
 	],resize_keyboard=True
 )
+
+skip_kb = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text="⏭️ Oʻtish")],
+        [KeyboardButton(text="❌ Bekor qilish")]
+    ],
+    resize_keyboard=True,
+    one_time_keyboard=True
+)
+
+
+phone_user_kb = ReplyKeyboardMarkup(
+         keyboard=[
+             [KeyboardButton(text="📞 Telefon raqamni yuborish", request_contact=True)],
+             [KeyboardButton(text="⏭️ Oʻtish")],
+             [KeyboardButton(text="❌ Bekor qilish")]
+         ],
+         resize_keyboard=True,
+         one_time_keyboard=True
+     )
+
+# Edit interface buttons
+edit_field_kb = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text="👤 Ism"), KeyboardButton(text="📱 Telefon")],
+        [KeyboardButton(text="🔗 Username"), KeyboardButton(text="✏️ Hammasini tahrirlash")],
+        [KeyboardButton(text="✅ Tasdiqlash"), KeyboardButton(text="❌ Bekor qilish")]
+    ],
+    resize_keyboard=True,
+    one_time_keyboard=True
+)
+
+edit_confirm_kb = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text="✅ Ha, yangilash"), KeyboardButton(text="❌ Yo'q, bekor qilish")],
+        [KeyboardButton(text="⬅️ Orqaga")]
+    ],
+    resize_keyboard=True,
+    one_time_keyboard=True
+)
+
+edit_back_kb = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text="⬅️ Orqaga")],
+        [KeyboardButton(text="❌ Bekor qilish")]
+    ],
+    resize_keyboard=True,
+    one_time_keyboard=True
+)

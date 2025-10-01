@@ -81,3 +81,49 @@ def is_admin(chat_id):
     except Exception as e:
         print(f"Error checking admin status: {e}")
         return False
+
+
+
+def get_userInfo(chat_id): 
+    query = """SELECT name, phone, username, is_active 
+            FROM users
+            WHERE chat_id = %s"""
+    try: 
+        with get_connect() as db: 
+            with db.cursor() as dbc:
+                dbc.execute(query, (chat_id, ))
+                row = dbc.fetchone()
+                if row: 
+                    return {
+                        "name": row[0],
+                        "phone": row[1],
+                        "username":row[2],
+                        "is_active": row[3]
+                    }
+                return None
+    except Exception as e: 
+        print(f"Error", e)
+        return None
+    
+
+def update_users(chat_id, name=None, phone=None, username=None): 
+    query = """
+        UPDATE users 
+        SET name = COALESCE(%s, name),
+            phone = COALESCE(%s, phone),
+            username = COALESCE(%s, username)
+        WHERE chat_id = %s
+        RETURNING id
+
+        """
+    
+    try: 
+        with get_connect() as db:
+            with db.cursor() as dbc:
+                dbc.execute(query, (name, phone, username, chat_id))
+                result = dbc.fetchone()
+                db.commit()
+                return bool(result)   
+    except Exception as e:
+        print(f"Error updating user: {e}")
+        return False
