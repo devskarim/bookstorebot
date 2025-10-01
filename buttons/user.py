@@ -63,3 +63,25 @@ all_kb = ReplyKeyboardMarkup (
 		[KeyboardButton(text="⬅️ back"), KeyboardButton(text="📋 Main menu")]
 	],resize_keyboard=True
 )
+
+
+order_ikb = InlineKeyboardMarkup(
+	inline_keyboard=[
+		[
+			InlineKeyboardButton(text="➖", callback_data="add_one"),
+			InlineKeyboardButton(text="1", callback_data="add"),
+			InlineKeyboardButton(text="➕", callback_data="minusOne")
+		],
+		[
+			InlineKeyboardButton(text="❌ Cancel", callback_data="sendItem"),
+			InlineKeyboardButton(text="🛒 Add to card", callback_data="Add_toCard"),
+			InlineKeyboardButton(text="✅ Send", callback_data="Cancel_item")
+		]
+	]
+)
+
+order_kb = ReplyKeyboardMarkup(
+	keyboard= [
+		[KeyboardButton(text="⭐️ Sevimlilarga qoshish"), KeyboardButton(text="⬅️ Back")]
+	],resize_keyboard=True
+)

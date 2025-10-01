@@ -71,3 +71,11 @@ CONTACT_ADMIN = """
 Admin tezda javob beradi.
 Rahmat! 💙
 """
+
+CAPTION_BOOK = """
+	Kitob: Hayot chizig'i\n
+	Mualif: Abdulhodiy G'iyos\n
+	Janr: Ilmiy Hayotiy\n
+	Narxi: 45.000\n\n
+	🔽 Quyidagi tugma orqali o'zingizga kerakli bo'limni tanlang:
+"""

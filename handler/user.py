@@ -4,9 +4,9 @@ from aiogram.filters import Command, CommandStart
 from aiogram.types.input_media_photo import InputMediaPhoto
 from aiogram.types import FSInputFile
 
-from buttons import REG_TEXT, GET_NAME, GET_PHONE,ERR_NAME, SUCCES_REG,ALREADY_IN	
+from buttons import REG_TEXT, GET_NAME, GET_PHONE,ERR_NAME, SUCCES_REG,ALREADY_IN, CAPTION_BOOK
 from buttons import register_kb, phoneNumber_kb, menu_kb, after_menukb, send_toAdminkb
-from buttons import searchClickkb, all_kb, profile_kb
+from buttons import searchClickkb, all_kb, profile_kb,order_ikb, order_kb
 from buttons import CONTACT_ADMIN
 from buttons import reply_toUser
 
@@ -52,26 +52,25 @@ async def get_name(message: Message, state: FSMContext):
 
 @user_router.message(Register.phone) 
 async def get_phone(message:Message, state: FSMContext):
-    phone = message.text  
+    phone = message.contact.phone_number  
+    ok, normalized = validate_uz_phone(phone)
 
-    if isinstance(phone, list):
-        phone = phone[0]
-
-    if validate_uz_phone(str(phone)): 
-        await state.update_data(phone=phone)
+    if ok:
+        await state.update_data(phone=normalized)
         data = await state.get_data()
-        
+
         save_users(
             message.from_user.id,
-            data['name'], 
-            data['phone'], 
+            data['name'],
+            data['phone'],
             message.from_user.username or None
         )
         await message.answer(SUCCES_REG, reply_markup=menu_kb)
         await state.clear()
     else:
-        await message.answer("❌ Telefon raqami noto'g'ri. Iltimos, +998901234567 formatida kiriting.")
-
+        await message.answer(
+            "❌ Telefon raqami noto'g'ri. Iltimos, +998901234567 formatida yuboring."
+        )
         
 
         
@@ -152,3 +151,9 @@ async def new_hanler(message: Message):
 async def back_menu(message:Message):
     await message.answer("📋 Asosiy menyu", reply_markup=after_menukb)
     
+
+@user_router.message(F.text=="🛒 Order")
+async def order_handler(message:Message):
+    photo_path = FSInputFile("imgs/image2.png")
+    await message.answer("Sizning burutmalaringiz yuklanmoqda...", reply_markup=order_kb)
+    await message.answer_photo(photo=photo_path, caption=CAPTION_BOOK, reply_markup=order_ikb)
