@@ -198,7 +198,6 @@ async def start_edit(message: Message, state: FSMContext):
             await message.answer("❌ Siz roʻyxatdan oʻtmagansiz yoki ma'lumot topilmadi.")
             return
 
-        # Store current user info in state for comparison later
         await state.update_data(
             current_info=info,
             edit_data={},
@@ -281,7 +280,6 @@ async def confirm_changes(message: Message, state: FSMContext):
     current_info = data.get('current_info', {})
     edit_data = data.get('edit_data', {})
 
-    # Build comparison text
     comparison_text = "🔄 O'zgarishlarni tasdiqlaysizmi?\n\n"
 
     if 'name' in edit_data:
@@ -313,7 +311,6 @@ async def cancel_edit(message: Message, state: FSMContext):
     await message.answer("✖️ Tahrirlash bekor qilindi.", reply_markup=menu_kb)
     logger.info(f"User {message.from_user.id} cancelled edit process")
 
-# Field input handlers with improved validation and error handling
 
 @user_router.message(EditStates.waiting_name)
 async def process_name_edit(message: Message, state: FSMContext):
@@ -346,10 +343,8 @@ async def process_name_edit(message: Message, state: FSMContext):
         )
         return
 
-    # Store the new name
     await state.update_data(edit_data={'name': text})
 
-    # Check if editing all fields or just this one
     data = await state.get_data()
     if data.get('editing_all'):
         await state.set_state(EditStates.waiting_phone)
@@ -396,13 +391,11 @@ async def process_phone_edit(message: Message, state: FSMContext):
             return
         phone_value = normalized
 
-    # Store the new phone
     current_data = await state.get_data()
     edit_data = current_data.get('edit_data', {})
     edit_data['phone'] = phone_value
     await state.update_data(edit_data=edit_data)
 
-    # Check if editing all fields or just this one
     if current_data.get('editing_all'):
         await state.set_state(EditStates.waiting_username)
         await message.answer(
@@ -442,13 +435,11 @@ async def process_username_edit(message: Message, state: FSMContext):
             return
         username_value = username
 
-    # Store the new username
     current_data = await state.get_data()
     edit_data = current_data.get('edit_data', {})
     edit_data['username'] = username_value
     await state.update_data(edit_data=edit_data)
 
-    # If editing all fields, go to confirmation
     if current_data.get('editing_all'):
         await confirm_changes(message, state)
     else:

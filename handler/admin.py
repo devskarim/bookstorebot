@@ -13,7 +13,6 @@ env.read_env()
 
 Admin_ID = env.str("ADMIN_CHATID")
 
-# Import shared variables
 from shared import admin_reply_target
 
 @admin_router.message(Command("admin"))

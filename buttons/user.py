@@ -106,7 +106,6 @@ phone_user_kb = ReplyKeyboardMarkup(
          one_time_keyboard=True
      )
 
-# Edit interface buttons
 edit_field_kb = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="👤 Ism"), KeyboardButton(text="📱 Telefon")],

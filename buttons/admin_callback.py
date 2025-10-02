@@ -4,7 +4,6 @@ from environs import Env
 
 admin_router = Router()
 
-# Import shared variables
 from shared import admin_reply_target
 
 env = Env()
