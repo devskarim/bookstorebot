@@ -8,14 +8,15 @@ import logging
 from buttons import REG_TEXT, GET_NAME, GET_PHONE,ERR_NAME, SUCCES_REG,ALREADY_IN, CAPTION_BOOK
 from buttons import register_kb, phoneNumber_kb, menu_kb, after_menukb, send_toAdminkb
 from buttons import searchClickkb, all_kb, profile_kb,order_ikb, order_kb,skip_kb,phone_user_kb
-from buttons import edit_field_kb, edit_confirm_kb, edit_back_kb
+from buttons import edit_field_kb, edit_confirm_kb, edit_back_kb, del_account_inkb,re_active_inkb
 from buttons import CONTACT_ADMIN
 from buttons import reply_toUser
 
 from states import conntact_withAdmin, ContactAdmin
 from states import Register, FSMContext, EditStates
 from filters import validate_name,validate_uz_phone
-from database import save_users, is_register_byChatId, get_userInfo, update_users
+from database import save_users, is_register_byChatId, get_userInfo, update_users, user_dell_acc
+from database import get_user_by_chat_id
 from environs import Env
 
 
@@ -25,7 +26,6 @@ env.read_env()
 
 Admin_ID = env.str("ADMIN_CHATID")
 
-# Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -37,12 +37,31 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 @user_router.message(CommandStart())
-async def start(message: Message):
-    if is_register_byChatId(message.from_user.id): 
-        photo_path  = FSInputFile("imgs/image.png")
-        await message.answer_photo(photo=photo_path, caption=ALREADY_IN, reply_markup=menu_kb)        
-    else:   
+async def start(message: Message, state: FSMContext):
+    chat_id = message.from_user.id
+    user = get_user_by_chat_id(chat_id)
+
+    if not user:
         await message.answer(REG_TEXT, reply_markup=register_kb)
+        await state.set_state(Register.name)
+        await message.answer(GET_NAME, reply_markup=ReplyKeyboardRemove())
+        return
+
+    if user['is_active'] is False:
+        await message.answer(
+            "🚫 Sizning akkauntingiz to‘xtatilgan.\n"
+            "Qayta faollashtirmoqchimisiz?",
+            reply_markup=re_active_inkb
+        )
+        return
+
+    photo_path = FSInputFile("imgs/image.png")
+    await message.answer_photo(
+        photo=photo_path,
+        caption=ALREADY_IN,
+        reply_markup=menu_kb
+    )
+
 
 
 @user_router.message(F.text == "Ro'yxatdan O'tish")
@@ -50,7 +69,6 @@ async def start(message: Message, state: FSMContext):
     await state.set_state(Register.name)
     await message.answer(GET_NAME, reply_markup=ReplyKeyboardRemove())
     
-
 @user_router.message(Register.name)
 async def get_name(message: Message, state: FSMContext):
     name = message.text.strip()  
@@ -503,3 +521,7 @@ async def back_to_field_selection(message: Message, state: FSMContext):
     """Go back to field selection from confirmation"""
     await state.set_state(EditStates.selecting_fields)
     await message.answer("Maydon tanlang:", reply_markup=edit_field_kb)
+
+@user_router.message(F.text == "❌ Accountni o‘chirish")
+async def delate_user(message: Message): 
+    await message.answer("Rostdan ham o'chirmoqchimisz", reply_markup=del_account_inkb) 

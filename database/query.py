@@ -127,3 +127,48 @@ def update_users(chat_id, name=None, phone=None, username=None):
     except Exception as e:
         print(f"Error updating user: {e}")
         return False
+    
+
+def user_dell_acc(chat_id): 
+    query = """
+        UPDATE users
+        SET is_active = false   
+        WHERE chat_id = %s
+    """
+    try: 
+        with get_connect() as db: 
+            with db.cursor() as dbc: 
+                dbc.execute(query, (chat_id,))
+            db.commit()
+        return True
+    except Exception as e:
+        print(f"Error deactivating user: {e}")
+        return False
+    
+
+def get_user_by_chat_id(chat_id):
+    query = "SELECT * FROM users WHERE chat_id = %s"
+    with get_connect() as db:
+        with db.cursor() as dbc:
+            dbc.execute(query, (chat_id,))
+            result = dbc.fetchone()
+            if result:
+                columns = [desc[0] for desc in dbc.description]
+                return dict(zip(columns, result))
+            return None
+
+
+def reActive(chat_id): 
+    query = " UPDATE users SET is_active = true where chat_id = %s"
+
+    try: 
+        with get_connect() as db: 
+            with db.cursor() as dbc: 
+                dbc.execute(query, (chat_id, ))
+            db.commit()
+        return True
+    except Exception as e: 
+        print("Error", e)
+        return False 
+    
+        

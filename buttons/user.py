@@ -133,3 +133,15 @@ edit_back_kb = ReplyKeyboardMarkup(
     resize_keyboard=True,
     one_time_keyboard=True
 )
+
+del_account_inkb = InlineKeyboardMarkup(
+	inline_keyboard =  [
+		[InlineKeyboardButton(text="✅ Tasdiqlash",callback_data=("accept")), InlineKeyboardButton(text="❌ Qaytish", callback_data="ignore")]
+    ]
+) 
+
+re_active_inkb = InlineKeyboardMarkup(
+	inline_keyboard= [
+		[InlineKeyboardButton(text="♻️ Qayta Faolashtirish", callback_data="reActivate"), InlineKeyboardButton(text="Yo'q ❌", callback_data="not")] 
+    ]
+)
