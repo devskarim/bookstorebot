@@ -7,17 +7,17 @@ usercall_router = Router()
 
 @usercall_router.callback_query(F.data == "title")
 async def get_title(callback: CallbackQuery):
-    await callback.message.edit_text("title bo'yicha")
+    await callback.message.edit_text("titleni kiriting")
     await callback.answer()
 
 @usercall_router.callback_query(F.data == "genre")
 async def genre_handler(callback: CallbackQuery):
-    await callback.message.answer("Genre bo'yicha qidirish Demo.")
+    await callback.message.edit_text("Genre kiriting")
     await callback.answer()
 
 @usercall_router.callback_query(F.data == "author")
 async def author_handler(callback: CallbackQuery):
-    await callback.message.answer("Author bo'yicha qidirish Demo.")
+    await callback.message.edit_text("Mualiffni kiriting")
     await callback.answer()
 
 @usercall_router.callback_query(F.data == "back")

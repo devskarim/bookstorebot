@@ -5,8 +5,8 @@ from aiogram.types.input_media_photo import InputMediaPhoto
 from aiogram.types import FSInputFile
 import logging
 
-from buttons import REG_TEXT, GET_NAME, GET_PHONE,ERR_NAME, SUCCES_REG,ALREADY_IN, CAPTION_BOOK
-from buttons import register_kb, phoneNumber_kb, menu_kb, after_menukb, send_toAdminkb
+from buttons import GET_NAME, GET_PHONE,ERR_NAME, SUCCES_REG,ALREADY_IN, CAPTION_BOOK
+from buttons import  phoneNumber_kb, menu_kb, after_menukb, send_toAdminkb
 from buttons import searchClickkb, all_kb, profile_kb,order_ikb, order_kb,skip_kb,phone_user_kb
 from buttons import edit_field_kb, edit_confirm_kb, edit_back_kb, del_account_inkb,re_active_inkb
 from buttons import CONTACT_ADMIN
@@ -42,7 +42,6 @@ async def start(message: Message, state: FSMContext):
     user = get_user_by_chat_id(chat_id)
 
     if not user:
-        await message.answer(REG_TEXT, reply_markup=register_kb)
         await state.set_state(Register.name)
         await message.answer(GET_NAME, reply_markup=ReplyKeyboardRemove())
         return
@@ -62,12 +61,6 @@ async def start(message: Message, state: FSMContext):
         reply_markup=menu_kb
     )
 
-
-
-@user_router.message(F.text == "Ro'yxatdan O'tish")
-async def start(message: Message, state: FSMContext):
-    await state.set_state(Register.name)
-    await message.answer(GET_NAME, reply_markup=ReplyKeyboardRemove())
     
 @user_router.message(Register.name)
 async def get_name(message: Message, state: FSMContext):
@@ -105,7 +98,7 @@ async def get_phone(message: Message, state: FSMContext):
 
 
         
-@user_router.message(F.text=="📋 Menu")
+@user_router.message(F.text=="📋 Menyu")
 async def menu_btn(message:Message, state:FSMContext): 
     await message.answer("📋 Asosiy menyu:",reply_markup=after_menukb)
     
@@ -115,7 +108,7 @@ async def back_menu(message:Message):
     await message.answer("📋 Asosiy menyu", reply_markup=menu_kb)
     
 
-@user_router.message(F.text=="📞 Contact")
+@user_router.message(F.text=="📞 Aloqa")
 async def contact_admin(message:Message, state: FSMContext):
     await state.set_state(ContactAdmin.user_waiting_massage)
     await message.answer("""📩 Savollaringiz bormi?
@@ -178,12 +171,12 @@ async def discount_handlar(message: Message):
 async def new_hanler(message: Message): 
     await message.answer("So'ngi kelgan kitoblar. (Demo)") 
 
-@user_router.message(F.text=="⬅️ back")
+@user_router.message(F.text=="⬅️ Orqaga")
 async def back_menu(message:Message):
-    await message.answer("📋 Asosiy menyu", reply_markup=after_menukb)
+    await message.answer("📋 Asosiy menyu", reply_markup=menu_kb)
     
 
-@user_router.message(F.text=="🛒 Order")
+@user_router.message(F.text=="🛒 Buyurtma")
 async def order_handler(message:Message):
     photo_path = FSInputFile("imgs/image2.png")
     await message.answer("Sizning burutmalaringiz yuklanmoqda...", reply_markup=order_kb)
