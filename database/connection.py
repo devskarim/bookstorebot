@@ -9,7 +9,7 @@ env.read_env()
 def get_connect():
    os.makedirs('data', exist_ok=True)
 
-   db_path = env.str("DATABASE_PATH", "data/app.db")
+   db_path = env.str("DATABASE_PATH", "data/app.sqlite3")
 
    return sqlite3.connect(db_path)
 
