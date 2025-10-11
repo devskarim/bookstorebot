@@ -42,7 +42,7 @@ async def reactive(callback: CallbackQuery):
     chat_id = callback.from_user.id
     if reActive(chat_id): 
         await callback.message.edit_text("Sizning Akkauntingiz qayta faolashdi 🎉")
-        await callback.message.answer("👋 Xush kelibsiz" ,reply_markup= menu_kb)
+        await callback.message.answer("👋 Xush kelibsiz" ,reply_markup = menu_kb)
         await callback.answer() 
     else: 
         await callback.message.answer("Xatolik yuz berdi 😢")
