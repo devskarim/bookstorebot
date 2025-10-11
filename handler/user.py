@@ -2,7 +2,7 @@ from aiogram.types import Message, ReplyKeyboardRemove
 from aiogram import Router, F
 from aiogram.filters import Command, CommandStart
 from aiogram.types.input_media_photo import InputMediaPhoto
-from aiogram.types import FSInputFile
+from aiogram.types import FSInputFile, CallbackQuery
 import logging
 
 from buttons import GET_NAME, GET_PHONE,ERR_NAME, SUCCES_REG,ALREADY_IN, CAPTION_BOOK
@@ -17,6 +17,59 @@ from states import Register, FSMContext, EditStates
 from filters import validate_name,validate_uz_phone
 from database import save_users, is_register_byChatId, get_userInfo, update_users, user_dell_acc
 from database import get_user_by_chat_id
+
+
+def check_registration(func):
+    async def wrapper(message: Message, *args, **kwargs):
+        chat_id = message.from_user.id
+        user = get_user_by_chat_id(chat_id)
+
+        if not user:
+            await message.answer(
+                "❌ Siz ro'yxatdan o'tmagansiz!\n"
+                "Iltimos, avval ro'yxatdan o'ting.",
+                reply_markup=register_kb
+            )
+            return
+
+        if user.get('is_active') == 0 or user.get('is_active') is False:
+            await message.answer(
+                "🚫 Sizning akkauntingiz to'xtatilgan.\n"
+                "Qayta faollashtirmoqchimisiz?",
+                reply_markup=re_active_inkb
+            )
+            return
+
+        return await func(message, *args, **kwargs)
+    return wrapper
+
+
+def check_registration_callback(func):
+    """Decorator to check if user is registered and active before executing callback handler"""
+    async def wrapper(callback: CallbackQuery, *args, **kwargs):
+        chat_id = callback.from_user.id
+        user = get_user_by_chat_id(chat_id)
+
+        if not user:
+            await callback.message.answer(
+                "❌ Siz ro'yxatdan o'tmagansiz!\n"
+                "Iltimos, avval ro'yxatdan o'ting.",
+                reply_markup=register_kb
+            )
+            await callback.answer("Avval ro'yxatdan o'ting")
+            return
+
+        if user.get('is_active') == 0 or user.get('is_active') is False:
+            await callback.message.answer(
+                "🚫 Sizning akkauntingiz to'xtatilgan.\n"
+                "Qayta faollashtirmoqchimisiz?",
+                reply_markup=re_active_inkb
+            )
+            await callback.answer("Akkaunt faol emas")
+            return
+
+        return await func(callback, *args, **kwargs)
+    return wrapper
 from environs import Env
 
 
@@ -46,7 +99,7 @@ async def start(message: Message, state: FSMContext):
         await message.answer(GET_NAME, reply_markup=ReplyKeyboardRemove())
         return
 
-    if user['is_active'] is False:
+    if user.get('is_active') == 0:
         await message.answer(
             "🚫 Sizning akkauntingiz to‘xtatilgan.\n"
             "Qayta faollashtirmoqchimisiz?",
@@ -98,17 +151,20 @@ async def get_phone(message: Message, state: FSMContext):
 
 
         
-@user_router.message(F.text=="📋 Menyu")
-async def menu_btn(message:Message, state:FSMContext): 
+@user_router.message(F.text=="📋 Menu")
+@check_registration
+async def menu_btn(message:Message, state:FSMContext):
     await message.answer("📋 Asosiy menyu:",reply_markup=after_menukb)
     
 
 @user_router.message(F.text=="⬅️ Back")
+@check_registration
 async def back_menu(message:Message):
     await message.answer("📋 Asosiy menyu", reply_markup=menu_kb)
     
 
-@user_router.message(F.text=="📞 Aloqa")
+@user_router.message(F.text=="📞 Contact")
+@check_registration
 async def contact_admin(message:Message, state: FSMContext):
     await state.set_state(ContactAdmin.user_waiting_massage)
     await message.answer("""📩 Savollaringiz bormi?
@@ -148,29 +204,42 @@ async def send_toAdmin(message:Message, state: FSMContext):
         await message.answer("⚠️ Avval xabar yozing.")
 
 
-@user_router.message(F.text == "👤 Profil") 
-async def my_profile(message: Message): 
+@user_router.message(F.text == "👤 Profil")
+@check_registration
+async def my_profile(message: Message):
     await message.answer("👤 Profil", reply_markup=profile_kb)
 
     
 
-@user_router.message(F.text == "🔎 Search") 
-async def search_btn(message:Message): 
+@user_router.message(F.text == "🔎 Search")
+@check_registration
+async def search_btn(message:Message):
     await message.answer("Search By: ", reply_markup=searchClickkb)
     
 
-@user_router.message(F.text== "📚 All") 
+@user_router.message(F.text== "📚 All")
+@check_registration
 async def all_handler(message: Message):
-    await message.answer("Barcha kitoblarni ko'rish demo", reply_markup=all_kb) 
-    
-@user_router.message(F.text=="💸 Discount")
-async def discount_handlar(message: Message):
-    await message.answer("Diskountdagi kitoblar: (DEMO)") 
-    
-@user_router.message(F.text=="🆕 New")
-async def new_hanler(message: Message): 
-    await message.answer("So'ngi kelgan kitoblar. (Demo)") 
+    await message.answer("Barcha kitoblarni ko'rish demo", reply_markup=all_kb)
 
+@user_router.message(F.text=="💸 Discount")
+@check_registration
+async def discount_handlar(message: Message):
+    await message.answer("Diskountdagi kitoblar: (DEMO)")
+
+@user_router.message(F.text=="🆕 New")
+@check_registration
+async def new_hanler(message: Message):
+    await message.answer("So'ngi kelgan kitoblar. (Demo)")
+
+@user_router.message(F.text=="⬅️ back")
+@check_registration
+async def back_menu(message:Message):
+    await message.answer("📋 Asosiy menyu", reply_markup=after_menukb)
+
+
+@user_router.message(F.text=="🛒 Order")
+@check_registration
 @user_router.message(F.text=="⬅️ Orqaga")
 async def back_menu(message:Message):
     await message.answer("📋 Asosiy menyu", reply_markup=menu_kb)
@@ -184,21 +253,23 @@ async def order_handler(message:Message):
 
 
 @user_router.message(F.text == "📄 Ma’lumotlarim")
-async def about_handler(message: Message): 
+@check_registration
+async def about_handler(message: Message):
     info = get_userInfo(message.from_user.id)
 
-    if info: 
+    if info:
         await message.answer(
             f"👤 Ism: {info['name']}\n"
             f"📱 Telefon: {info['phone']}\n"
             f"🔗 Username: {info['username'] or 'yo‘q'}\n"
             f"✅ Aktiv: {info['is_active']}"
         )
-    else: 
+    else:
         await message.answer("❌ Siz royxatdan o'tmagansiz.")
 
 
 @user_router.message(F.text == "✏️ Tahrirlash")
+@check_registration
 async def start_edit(message: Message, state: FSMContext):
     """Start the edit process by showing current info and field selection"""
     chat_id = message.from_user.id
@@ -516,5 +587,6 @@ async def back_to_field_selection(message: Message, state: FSMContext):
     await message.answer("Maydon tanlang:", reply_markup=edit_field_kb)
 
 @user_router.message(F.text == "❌ Accountni o‘chirish")
-async def delate_user(message: Message): 
-    await message.answer("Rostdan ham o'chirmoqchimisz", reply_markup=del_account_inkb) 
+@check_registration
+async def delate_user(message: Message):
+    await message.answer("Rostdan ham o'chirmoqchimisz", reply_markup=del_account_inkb)
