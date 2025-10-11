@@ -61,3 +61,17 @@ async def handle_admin_reply(message: Message):
         await message.answer(f"⚠️ Xatolik: {e}")
         if "reply_to" in admin_reply_target:
             del admin_reply_target["reply_to"]
+
+
+@admin_router.message(F.text  == "🛒 Buyurtmalar")
+async def orders_handler(message: Message): 
+    await message.answer("Under work...") 
+
+
+@admin_router.message(F.text == "📊 Dashboard") 
+async def dashboard_handler(message: Message): 
+     await message.answer("Under work.. ")
+
+@admin_router.message(F.text == "⬅️ Ortga")
+async def back_handler(message: Message): 
+    await message.answer("User jadvaliga qaytish", reply_markup=menu_kb)

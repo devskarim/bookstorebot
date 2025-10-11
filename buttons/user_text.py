@@ -1,24 +1,23 @@
-REG_TEXT = f"""
+GET_NAME = """
 ✨ 📚 Kitoblar Olami ✨
-Siz uchun yangi bilim va ilhom manbai
+Siz uchun yangi bilim va ilhom manbai!
 
-🔍 Izlang | 🛒 Sotib oling
-⭐ Sevimlilarga saqlang | 📜 Tarixni ko'ring
+🔍 Izlang | 🛒 Sotib oling  
+⭐ Sevimlilarga saqlang  
 
-📖 Har bir kitob – yangi dunyo.
-Siz ham o'zingizga mos dunyoni kashf qiling!
+📖 Har bir kitob – yangi dunyo.  
+Siz ham o'zingizga mos dunyoni kashf qiling!  
 
-⚠️ Ro'yxatdan o'tish shart!
-📲 Pastdagi tugma orqali ro'yxatdan o'ting va barcha imkoniyatlardan to'liq foydalaning.
+⚠️ Ro'yxatdan o'tish shart!  
+Barcha imkoniyatlardan to‘liq foydalanish uchun quyidagi ma’lumotlarni kiriting.  
 
-🔘 [📝 Ro'yxatdan o'tish]
+
+🔐 Ma’lumotlaringiz maxfiy saqlanadi va uchinchi shaxslarga berilmaydi. 
+
+📝 **1. Ismingizni kiriting**  
+Sizni yaxshiroq tanishimiz va buyurtmalaringizni qulayroq boshqarishimiz uchun ismingiz kerak.  
+✍️ Masalan: *Karimov Izzatulloh*
 """
-
-GET_NAME = """📝 Ismingizni kiriting
-
-Sizni yaxshiroq tanishimiz va buyurtmalaringizni qulayroq boshqarishimiz uchun ismingizni kiriting.
-
-✍️ Masalan: Karimov Izzatulloh"""
 
 
 GET_PHONE = """
