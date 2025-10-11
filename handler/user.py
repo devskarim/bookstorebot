@@ -5,7 +5,7 @@ from aiogram.types.input_media_photo import InputMediaPhoto
 from aiogram.types import FSInputFile
 import logging
 
-from buttons import REG_TEXT, GET_NAME, GET_PHONE,ERR_NAME, SUCCES_REG,ALREADY_IN, CAPTION_BOOK
+from buttons import REG_TEXT,  GET_PHONE,ERR_NAME, SUCCES_REG,ALREADY_IN, CAPTION_BOOK
 from buttons import register_kb, phoneNumber_kb, menu_kb, after_menukb, send_toAdminkb
 from buttons import searchClickkb, all_kb, profile_kb,order_ikb, order_kb,skip_kb,phone_user_kb
 from buttons import edit_field_kb, edit_confirm_kb, edit_back_kb, del_account_inkb,re_active_inkb
