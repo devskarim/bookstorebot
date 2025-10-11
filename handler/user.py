@@ -30,7 +30,6 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('user_edit.log'),
         logging.StreamHandler()
     ]
 )
