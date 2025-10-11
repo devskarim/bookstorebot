@@ -41,9 +41,8 @@ async def start(message: Message, state: FSMContext):
     user = get_user_by_chat_id(chat_id)
 
     if not user:
-        await message.answer(REG_TEXT, reply_markup=register_kb)
+        await message.answer(REG_TEXT, reply_markup=ReplyKeyboardRemove())
         await state.set_state(Register.name)
-        await message.answer(GET_NAME, reply_markup=ReplyKeyboardRemove())
         return
 
     if user['is_active'] is False:
