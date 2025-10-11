@@ -1,16 +1,17 @@
 from aiogram.types import (
-    ReplyKeyboardMarkup, ReplyKeyboardRemove,
+    ReplyKeyboardMarkup,
     KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
 )
 
 adminmenu_kb = ReplyKeyboardMarkup(
     keyboard=[
-        [KeyboardButton(text="📋 Menu")],
-        [KeyboardButton(text="🛒 Order")],
-        [KeyboardButton(text="📊 Dashboard")]
+        [KeyboardButton(text="🛒 Buyurtmalar"), KeyboardButton(text="📊 Boshqaruv paneli")],\
+        [KeyboardButton(text="⬅️ Ortga")]
     ],
     resize_keyboard=True
 )
+
+
 
 
 def reply_toUser(user_id):
