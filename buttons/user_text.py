@@ -1,6 +1,6 @@
 REG_TEXT = f"""📝 Ismingizni kiriting
 
-Sizni yaxshiroq tanishimiz va buyurtmalaringizni qulayroq boshqarishimiz uchun ismingizni kiriting.
+🔐 Ma’lumotlaringiz maxfiy saqlanadi va uchinchi shaxslarga berilmaydi. 
 
 ✍️ Masalan: Karimov Izzatulloh
 📝 Ismingizni kiriting
