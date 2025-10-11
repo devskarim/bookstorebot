@@ -11,7 +11,7 @@ dp = Dispatcher()
 
 
 async def main():
-    bot = Bot(token=env.str("TOKEN")
+    bot = Bot(token=env.str("TOKEN"))
     dp.include_router(usercall_router)
     dp.include_router(user_router)
     dp.include_router(admin_router)
