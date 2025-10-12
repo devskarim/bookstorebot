@@ -1,11 +1,11 @@
 import os
-from aiogram.types import Message, CallbackQuery, FSInputFile
+from aiogram.types import Message, CallbackQuery, FSInputFile, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram import Router, F
 from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from database import is_admin
-from database.admin_query import add_book, get_all_books, get_book_by_id, delete_book, update_book, search_books, generate_books_pdf, generate_books_pdf_pdfkit, save_image_from_telegram, REPORTLAB_AVAILABLE, PDFKIT_AVAILABLE
+from database.admin_query import add_book, get_all_books, get_book_by_id, delete_book, update_book, search_books, generate_books_pdf, generate_books_pdf_pdfkit, save_image_from_telegram, REPORTLAB_AVAILABLE, PDFKIT_AVAILABLE, get_books_paginated, create_pagination_keyboard, get_all_orders, get_order_details, update_order_status
 from buttons import adminmenu_kb, menu_kb, admin_menu_kb
 from states.book_management import BookManagement
 from buttons import reply_toUser
@@ -209,13 +209,25 @@ async def delete_books(message: Message, state: FSMContext):
     for book in books[:20]:
         response += f"🆔 {book['id']}: {book['title']} - {book['author']}\n"
 
-    response += "\nKitob ID sini kiriting (faqat raqam):"
+    response += "\nKitob ID sini kiriting (faqat raqam):\n"
+    response += "❌ Bekor qilish: /cancel"
 
     await message.answer(response)
     await state.set_state(BookManagement.waiting_for_book_id)
 
 @admin_router.message(BookManagement.waiting_for_book_id)
 async def process_book_deletion(message: Message, state: FSMContext):
+    if message.text and message.text.lower() == '/cancel':
+        await state.clear()
+        await message.answer(
+            "❌ <b>Kitob o'chirish bekor qilindi</b>\n\n"
+            "📚 Hech narsa o'chirilmadi.\n\n"
+            "Admin menyu",
+            parse_mode="HTML",
+            reply_markup=admin_menu_kb
+        )
+        return
+
     try:
         book_id = int(message.text)
 
@@ -224,7 +236,8 @@ async def process_book_deletion(message: Message, state: FSMContext):
         if not book:
             await message.answer(
                 f"❌ ID {book_id} topilmadi. Qaytadan urinib ko'ring.\n\n"
-                "Kitob ID sini kiriting:"
+                "Kitob ID sini kiriting:\n"
+                "❌ Bekor qilish: /cancel"
             )
             return
 
@@ -246,7 +259,10 @@ async def process_book_deletion(message: Message, state: FSMContext):
         await state.clear()
 
     except ValueError:
-        await message.answer("❌ Kitob ID sini faqat raqam bilan kiriting. Qaytadan urinib ko'ring:")
+        await message.answer(
+            "❌ Kitob ID sini faqat raqam bilan kiriting. Qaytadan urinib ko'ring:\n"
+            "❌ Bekor qilish: /cancel"
+        )
 
 @admin_router.message(F.text == "⬅️ orqa")
 async def back_handler(message: Message, **kwargs):
@@ -286,13 +302,172 @@ async def cancel_operation(message: Message, state: FSMContext):
         await state.clear()
         await message.answer(
             "❌ <b>Operatsiya bekor qilindi</b>\n\n"
-            "📚 Kitob qo'shish to'xtatildi.\n\n"
+            "📚 Amal to'xtatildi.\n\n"
             "Admin menyu",
             parse_mode="HTML",
             reply_markup=admin_menu_kb
         )
     else:
         await message.answer("❌ Hozirda bekor qilinadigan operatsiya yo'q.")
+
+# Order Management for Admin
+
+@admin_router.message(F.text == "📦 Buyurtmalarni boshqarish")
+async def manage_orders(message: Message, **kwargs):
+    """Show order management menu"""
+    orders_data = get_all_orders(page=1, per_page=5)
+
+    if not orders_data['orders']:
+        await message.answer(
+            "📦 Hozircha buyurtmalar yo'q\n\n"
+            "Yangi buyurtmalar kelganda bu yerda ko'rinadi.",
+            reply_markup=admin_menu_kb
+        )
+        return
+
+    response = "📦 Buyurtmalarni boshqarish:\n\n"
+
+    for i, order in enumerate(orders_data['orders'], 1):
+        status_emoji = {
+            'pending': '⏳',
+            'approved': '✅',
+            'shipped': '📦',
+            'delivered': '🚚',
+            'cancelled': '❌'
+        }
+
+        emoji = status_emoji.get(order['status'], '❓')
+        response += f"{i}. {emoji} Buyurtma #{order['id']}\n"
+        response += f"   👤 {order['name']} ({order['phone']})\n"
+        response += f"   💰 {order['total_amount']} so'm\n"
+        response += f"   📍 {order['delivery_address'][:50]}...\n"
+        response += f"   💳 {order['payment_type']}\n"
+        response += f"   📅 {order['created_at'][:10]}\n\n"
+
+    response += f"📄 Sahifa {orders_data['current_page']}/{orders_data['total_pages']}"
+
+    from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+
+    nav_buttons = []
+    if orders_data['current_page'] > 1:
+        nav_buttons.append(InlineKeyboardButton(
+            text="⬅️ Oldingi",
+            callback_data=f"admin_orders_page_{orders_data['current_page'] - 1}"
+        ))
+    if orders_data['current_page'] < orders_data['total_pages']:
+        nav_buttons.append(InlineKeyboardButton(
+            text="Keyingi ➡️",
+            callback_data=f"admin_orders_page_{orders_data['current_page'] + 1}"
+        ))
+
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[nav_buttons] if nav_buttons else [])
+
+    await message.answer(response, reply_markup=keyboard)
+
+@admin_router.callback_query(F.data.startswith("admin_orders_page_"))
+async def handle_admin_orders_pagination(callback: CallbackQuery):
+    """Handle admin order pagination"""
+    try:
+        page = int(callback.data.split('_')[3])
+
+        orders_data = get_all_orders(page=page, per_page=5)
+
+        if not orders_data['orders']:
+            await callback.answer("❌ Bu sahifada buyurtmalar yo'q")
+            return
+
+        response = "📦 Buyurtmalarni boshqarish:\n\n"
+
+        for i, order in enumerate(orders_data['orders'], 1):
+            status_emoji = {
+                'pending': '⏳',
+                'approved': '✅',
+                'shipped': '📦',
+                'delivered': '🚚',
+                'cancelled': '❌'
+            }
+
+            emoji = status_emoji.get(order['status'], '❓')
+            response += f"{i}. {emoji} Buyurtma #{order['id']}\n"
+            response += f"   👤 {order['name']} ({order['phone']})\n"
+            response += f"   💰 {order['total_amount']} so'm\n"
+            response += f"   📍 {order['delivery_address'][:50]}...\n"
+            response += f"   💳 {order['payment_type']}\n"
+            response += f"   📅 {order['created_at'][:10]}\n\n"
+
+        response += f"📄 Sahifa {orders_data['current_page']}/{orders_data['total_pages']}"
+
+        nav_buttons = []
+        if orders_data['current_page'] > 1:
+            nav_buttons.append(InlineKeyboardButton(
+                text="⬅️ Oldingi",
+                callback_data=f"admin_orders_page_{orders_data['current_page'] - 1}"
+            ))
+        if orders_data['current_page'] < orders_data['total_pages']:
+            nav_buttons.append(InlineKeyboardButton(
+                text="Keyingi ➡️",
+                callback_data=f"admin_orders_page_{orders_data['current_page'] + 1}"
+            ))
+
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[nav_buttons] if nav_buttons else [])
+
+        await callback.message.edit_text(response, reply_markup=keyboard, parse_mode="HTML")
+        await callback.answer()
+
+    except (ValueError, IndexError) as e:
+        await callback.answer("❌ Sahifa raqami noto'g'ri")
+
+@admin_router.message(F.text == "✅ Buyurtmani tasdiqlash")
+async def approve_order_handler(message: Message, **kwargs):
+    """Approve pending order"""
+    orders_data = get_all_orders(page=1, per_page=10)
+
+    pending_orders = [order for order in orders_data['orders'] if order['status'] == 'pending']
+
+    if not pending_orders:
+        await message.answer(
+            "⏳ Tasdiqlash uchun kutayotgan buyurtmalar yo'q",
+            reply_markup=admin_menu_kb
+        )
+        return
+
+    response = "⏳ Tasdiqlash uchun kutayotgan buyurtmalar:\n\n"
+
+    for i, order in enumerate(pending_orders[:10], 1):
+        response += f"{i}. 📦 Buyurtma #{order['id']}\n"
+        response += f"   👤 {order['name']} ({order['phone']})\n"
+        response += f"   💰 {order['total_amount']} so'm\n"
+        response += f"   📍 {order['delivery_address'][:30]}...\n\n"
+
+    response += "Buyurtma ID sini kiriting (faqat raqam):"
+
+    await message.answer(response)
+
+@admin_router.message(F.text == "📦 Buyurtmani jo'natish")
+async def ship_order_handler(message: Message, **kwargs):
+    """Mark order as shipped"""
+    orders_data = get_all_orders(page=1, per_page=10)
+
+    approved_orders = [order for order in orders_data['orders'] if order['status'] == 'approved']
+
+    if not approved_orders:
+        await message.answer(
+            "✅ Jo'natish uchun tasdiqlangan buyurtmalar yo'q",
+            reply_markup=admin_menu_kb
+        )
+        return
+
+    response = "✅ Jo'natish uchun tayyor buyurtmalar:\n\n"
+
+    for i, order in enumerate(approved_orders[:10], 1):
+        response += f"{i}. 📦 Buyurtma #{order['id']}\n"
+        response += f"   👤 {order['name']} ({order['phone']})\n"
+        response += f"   💰 {order['total_amount']} so'm\n"
+        response += f"   📍 {order['delivery_address'][:30]}...\n\n"
+
+    response += "Jo'natilgan buyurtma ID sini kiriting (faqat raqam):"
+
+    await message.answer(response)
 
 @admin_router.message(BookManagement.waiting_for_title)
 async def process_book_title(message: Message, state: FSMContext):
@@ -326,6 +501,11 @@ async def process_book_title(message: Message, state: FSMContext):
         "❌ Bekor qilish: /cancel", parse_mode="HTML"
     )
     await state.set_state(BookManagement.waiting_for_description)
+
+@admin_router.message(F.text == "🙍‍♂️ Foydalanuvchi qismiga otish")
+async def go_user(message: Message):
+    await message.answer("Userga qaytdingiz adminga qaytish uchun /admin deb yozing", reply_markup=menu_kb)
+
 
 @admin_router.message(BookManagement.waiting_for_description)
 async def process_book_description(message: Message, state: FSMContext):

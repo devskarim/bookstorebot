@@ -22,20 +22,6 @@ def check_registration_callback(func):
         return await func(callback, *args, **kwargs)
     return wrapper
 
-@usercall_router.callback_query(F.data == "title")
-async def get_title(callback: CallbackQuery, **kwargs):
-    await callback.message.edit_text("Sarlavha kiriting")
-    await callback.answer()
-
-@usercall_router.callback_query(F.data == "genre")
-async def genre_handler(callback: CallbackQuery, **kwargs):
-    await callback.message.edit_text("Janr kiriting")
-    await callback.answer()
-
-@usercall_router.callback_query(F.data == "author")
-async def author_handler(callback: CallbackQuery, **kwargs):
-    await callback.message.edit_text("Muallif kiriting")
-    await callback.answer()
 
 @usercall_router.callback_query(F.data == "back")
 async def back_handler(callback: CallbackQuery, **kwargs):

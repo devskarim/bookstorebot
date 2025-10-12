@@ -27,14 +27,36 @@ def create_tables():
         )
         """,
         """
+        CREATE TABLE IF NOT EXISTS cart(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            book_id INTEGER NOT NULL REFERENCES books(id) ON DELETE CASCADE,
+            quantity INTEGER NOT NULL DEFAULT 1,
+            price INTEGER NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+        """,
+        """
         CREATE TABLE IF NOT EXISTS orders(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            book_id INTEGER REFERENCES books(id) ON DELETE CASCADE,
-            user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-            price INTEGER NOT NULL DEFAULT 0,
-            quantity INTEGER NOT NULL DEFAULT 1,
+            user_id INTEGER NOT NULL,
+            total_amount INTEGER NOT NULL,
+            delivery_address TEXT NOT NULL,
+            payment_type VARCHAR(50) NOT NULL,
+            status VARCHAR(60) DEFAULT 'pending',
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            status VARCHAR(60) DEFAULT 'new'
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS order_items(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+            book_id INTEGER NOT NULL REFERENCES books(id) ON DELETE CASCADE,
+            quantity INTEGER NOT NULL,
+            price INTEGER NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
         """
     ]
