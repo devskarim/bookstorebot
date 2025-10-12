@@ -62,5 +62,5 @@ CAPTION_BOOK = """
 	Mualif: Abdulhodiy G'iyos\n
 	Janr: Ilmiy Hayotiy\n
 	Narxi: 45.000\n\n
-	🔽 Quyidagi tugma orqali o'zingizga kerakli bo'limni tanlang:
+	⬅️ Orqaga tugmasi orqali asosiy menyuga qaytishingiz mumkin:
 """

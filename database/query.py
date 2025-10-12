@@ -1,7 +1,7 @@
 from .connection import get_connect
 
 def create_tables():
-    """Create all necessary tables for the application"""
+    """Create all necessary tables for the bookstore application"""
     tables = [
         """
         CREATE TABLE IF NOT EXISTS users(
@@ -39,12 +39,6 @@ def create_tables():
     ]
     return tables
 
-
-def create_table():
-    """Legacy function for backward compatibility"""
-    return create_tables()
-
-
 # Create tables on import
 try:
     conn = get_connect()
@@ -53,6 +47,7 @@ try:
         cursor.execute(table_sql)
     conn.commit()
     conn.close()
+    print("Tables created successfully!")
 except Exception as e:
     print(f"Error creating tables: {e}")
 
@@ -137,7 +132,7 @@ def update_users(chat_id, name=None, phone=None, username=None):
         cursor = conn.cursor()
         cursor.execute(query, (name, phone, username, chat_id))
         conn.commit()
-        result = cursor.fetchone()
+        result = cursor.rowcount > 0  # SQLite3 doesn't have RETURNING, so check rowcount
         conn.close()
         return bool(result)
     except Exception as e:
@@ -146,6 +141,7 @@ def update_users(chat_id, name=None, phone=None, username=None):
     
 
 def user_dell_acc(chat_id):
+    """Soft delete - deactivate user account"""
     query = """
         UPDATE users
         SET is_active = 0
@@ -161,25 +157,44 @@ def user_dell_acc(chat_id):
     except Exception as e:
         print(f"Error deactivating user: {e}")
         return False
+
+
+def user_hard_delete(chat_id):
+    """Hard delete - completely remove user from database"""
+    query = "DELETE FROM users WHERE chat_id = ?"
+    try:
+        conn = get_connect()
+        cursor = conn.cursor()
+        cursor.execute(query, (chat_id,))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Error deleting user: {e}")
+        return False
     
 
 def get_user_by_chat_id(chat_id):
     query = "SELECT * FROM users WHERE chat_id = ?"
-    conn = get_connect()
-    cursor = conn.cursor()
-    cursor.execute(query, (chat_id,))
-    result = cursor.fetchone()
-    if result:
-        columns = [desc[0] for desc in cursor.description]
-        user_dict = dict(zip(columns, result))
+    try:
+        conn = get_connect()
+        cursor = conn.cursor()
+        cursor.execute(query, (chat_id,))
+        result = cursor.fetchone()
+        if result:
+            columns = [desc[0] for desc in cursor.description]
+            user_dict = dict(zip(columns, result))
+            conn.close()
+            return user_dict
         conn.close()
-        return user_dict
-    conn.close()
-    return None
+        return None
+    except Exception as e:
+        print(f"Error getting user by chat_id: {e}")
+        return None
 
 
 def reActive(chat_id):
-    query = " UPDATE users SET is_active = 1 where chat_id = ?"
+    query = "UPDATE users SET is_active = 1 WHERE chat_id = ?"
 
     try:
         conn = get_connect()

@@ -5,11 +5,12 @@ from environs import Env
 env = Env()
 env.read_env()
 
+DB_PATH = "bookstore.db"
 
 def get_connect():
-   os.makedirs('data', exist_ok=True)
+   """Create and return SQLite3 database connection"""
+   # Create database directory if it doesn't exist
+   os.makedirs(os.path.dirname(DB_PATH) if os.path.dirname(DB_PATH) else '.', exist_ok=True)
 
-   db_path = env.str("DATABASE_PATH", "data/app.sqlite3")
-
-   return sqlite3.connect(db_path)
+   return sqlite3.connect(DB_PATH)
 

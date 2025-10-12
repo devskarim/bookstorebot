@@ -18,14 +18,14 @@ from shared import admin_reply_target
 @admin_router.message(Command("admin"))
 async def admin_handler(message: Message):
 	if is_admin(message.from_user.id):
-		await message.answer("Admin menu", reply_markup=adminmenu_kb)
+		await message.answer("Admin menyu", reply_markup=adminmenu_kb)
 	else:
 		await message.answer("⛔ Sizda admin huquqi yo'q.")
 
 
 @admin_router.message(Command("user")) 
 async def get_user(message:Message): 
-	await message.answer("Foydalanuvchiga qaytdingiz", reply_markup=menu_kb)
+	await message.answer("Foydalanuvchi rejimiga qaytildi", reply_markup=menu_kb)
 
 
 @admin_router.message(F.reply_to_message, lambda m: m.from_user.id == Admin_ID)
@@ -65,13 +65,13 @@ async def handle_admin_reply(message: Message):
 
 @admin_router.message(F.text  == "🛒 Buyurtmalar")
 async def orders_handler(message: Message): 
-    await message.answer("Under work...") 
+    await message.answer("Qurilishda...")
 
 
-@admin_router.message(F.text == "📊 Dashboard") 
+@admin_router.message(F.text == "📊 Boshqaruv paneli")
 async def dashboard_handler(message: Message): 
-     await message.answer("Under work.. ")
+     await message.answer("Qurilishda..")
 
 @admin_router.message(F.text == "⬅️ Ortga")
 async def back_handler(message: Message): 
-    await message.answer("User jadvaliga qaytish", reply_markup=menu_kb)
+    await message.answer("Asosiy menyu", reply_markup=menu_kb)
