@@ -105,7 +105,7 @@ async def get_phone(message: Message, state: FSMContext):
 
 
         
-@user_router.message(F.text=="📋 Menu")
+@user_router.message(F.text=="📋 Menyu")
 async def menu_btn(message:Message, state:FSMContext): 
     await message.answer("📋 Asosiy menyu:",reply_markup=after_menukb)
     
@@ -115,7 +115,7 @@ async def back_menu(message:Message):
     await message.answer("📋 Asosiy menyu", reply_markup=menu_kb)
     
 
-@user_router.message(F.text=="📞 Contact")
+@user_router.message(F.text=="📞 Aloqa")
 async def contact_admin(message:Message, state: FSMContext):
     await state.set_state(ContactAdmin.user_waiting_massage)
     await message.answer("""📩 Savollaringiz bormi?
