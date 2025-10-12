@@ -1,5 +1,5 @@
-from aiogram import Bot, Dispatcher 
-from database import env 
+from aiogram import Bot, Dispatcher
+from environs import Env
 from handler import start
 from buttons import usercall_router, admin_callback
 import logging
@@ -7,10 +7,12 @@ import asyncio
 
 from handler import user_router, admin_router
 
-dp = Dispatcher() 
+dp = Dispatcher()
 
 
 async def main():
+    env = Env()
+    env.read_env()
     bot = Bot(token=env.str("TOKEN"))
     dp.include_router(usercall_router)
     dp.include_router(user_router)

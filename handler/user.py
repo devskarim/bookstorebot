@@ -1,21 +1,20 @@
-from aiogram.types import Message, ReplyKeyboardRemove
+from aiogram.types import Message, ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram import Router, F
 from aiogram.filters import Command, CommandStart
 from aiogram.types.input_media_photo import InputMediaPhoto
 from aiogram.types import FSInputFile, CallbackQuery
 import logging
 
-from buttons import REG_TEXT, GET_PHONE,ERR_NAME, SUCCES_REG,ALREADY_IN, CAPTION_BOOK
+from buttons import REG_TEXT, GET_PHONE,ERR_NAME, SUCCES_REG,ALREADY_IN, CAPTION_BOOK, menu_kb
 from buttons import register_kb, phoneNumber_kb, menu_kb, after_menukb, send_toAdminkb
 from buttons import searchClickkb, all_kb, profile_kb,order_ikb, order_kb,skip_kb,phone_user_kb
 from buttons import edit_field_kb, edit_confirm_kb, edit_back_kb, del_account_inkb,re_active_inkb
 from buttons import CONTACT_ADMIN
 from buttons import reply_toUser
 
-from states import conntact_withAdmin, ContactAdmin
-from states import Register, FSMContext, EditStates
+from states import conntact_withAdmin, ContactAdmin, Register, FSMContext, EditStates, State
 from filters import validate_name,validate_uz_phone
-from database import save_users, is_register_byChatId, get_userInfo, update_users, user_dell_acc
+from database import save_users, is_register_byChatId, get_userInfo, update_users, user_dell_acc, user_hard_delete
 from database import get_user_by_chat_id
 
 
@@ -40,7 +39,11 @@ def check_registration(func):
             )
             return
 
-        return await func(message, *args, **kwargs)
+        # Filter out dispatcher and other internal kwargs that the function doesn't expect
+        filtered_kwargs = {k: v for k, v in kwargs.items()
+                          if k not in ['dispatcher', 'bot', 'event_update']}
+
+        return await func(message, *args, **filtered_kwargs)
     return wrapper
 
 
@@ -68,7 +71,11 @@ def check_registration_callback(func):
             await callback.answer("Akkaunt faol emas")
             return
 
-        return await func(callback, *args, **kwargs)
+        # Filter out dispatcher and other internal kwargs that the function doesn't expect
+        filtered_kwargs = {k: v for k, v in kwargs.items()
+                          if k not in ['dispatcher', 'bot', 'event_update']}
+
+        return await func(callback, *args, **filtered_kwargs)
     return wrapper
 from environs import Env
 
@@ -99,10 +106,19 @@ async def start(message: Message, state: FSMContext):
         return
 
     if user.get('is_active') == 0:
+        # Create a choice keyboard for inactive users
+        from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+        choice_kb = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text="♻️ Qayta faollashtirish", callback_data="reactivate")],
+                [InlineKeyboardButton(text="🔄 Qayta ro'yxatdan o'tish", callback_data="reregister")],
+                [InlineKeyboardButton(text="❌ Bekor qilish", callback_data="cancel")]
+            ]
+        )
         await message.answer(
-            "🚫 Sizning akkauntingiz to‘xtatilgan.\n"
-            "Qayta faollashtirmoqchimisiz?",
-            reply_markup=re_active_inkb
+            "🚫 Sizning akkauntingiz to'xtatilgan.\n\n"
+            "Nima qilmoqchisiz?",
+            reply_markup=choice_kb
         )
         return
 
@@ -150,21 +166,21 @@ async def get_phone(message: Message, state: FSMContext):
 
 
         
-@user_router.message(F.text=="📋 Menu")
+@user_router.message(F.text=="📋 Menyu")
 @check_registration
-async def menu_btn(message:Message, state:FSMContext):
+async def menu_btn(message:Message, state:FSMContext, **kwargs):
     await message.answer("📋 Asosiy menyu:",reply_markup=after_menukb)
     
 
-@user_router.message(F.text=="⬅️ Back")
+@user_router.message(F.text=="⬅️ Orqaga")
 @check_registration
-async def back_menu(message:Message):
+async def back_menu(message:Message, **kwargs):
     await message.answer("📋 Asosiy menyu", reply_markup=menu_kb)
     
 
-@user_router.message(F.text=="📞 Contact")
+@user_router.message(F.text=="📞 Aloqa")
 @check_registration
-async def contact_admin(message:Message, state: FSMContext):
+async def contact_admin(message:Message, state: FSMContext, **kwargs):
     await state.set_state(ContactAdmin.user_waiting_massage)
     await message.answer("""📩 Savollaringiz bormi?
   Biz har doim yordam berishga tayyormiz!
@@ -172,7 +188,7 @@ async def contact_admin(message:Message, state: FSMContext):
 
 
 @user_router.message(ContactAdmin.user_waiting_massage, F.text == "❌ Bekor qilish")
-async def cancel_contact(message:Message, state: FSMContext):
+async def cancel_contact(message:Message, state: FSMContext, **kwargs):
     await state.clear()
     await message.answer("Bosh menu", reply_markup=menu_kb)
 
@@ -180,14 +196,14 @@ async def cancel_contact(message:Message, state: FSMContext):
 user_messages = {}
 
 @user_router.message(ContactAdmin.user_waiting_massage, F.text.not_in(["📤 Yuborish", "❌ Bekor qilish"]))
-async def get_user_message(message: Message):
+async def get_user_message(message: Message, **kwargs):
     user_messages[message.from_user.id] = message.text
     await message.answer("✅ Xabaringiz saqlandi. Endi 📤 Yuborish tugmasini bosing.")
 
 
 
 @user_router.message(ContactAdmin.user_waiting_massage, F.text=="📤 Yuborish")
-async def send_toAdmin(message:Message, state: FSMContext):
+async def send_toAdmin(message:Message, state: FSMContext, **kwargs):
     user_id = message.from_user.id
     if user_id in user_messages:
         text = user_messages[user_id]
@@ -205,47 +221,46 @@ async def send_toAdmin(message:Message, state: FSMContext):
 
 @user_router.message(F.text == "👤 Profil")
 @check_registration
-async def my_profile(message: Message):
+async def my_profile(message: Message, **kwargs):
     await message.answer("👤 Profil", reply_markup=profile_kb)
 
     
 
-@user_router.message(F.text == "🔎 Search")
+@user_router.message(F.text == "🔎 Qidirish")
 @check_registration
-async def search_btn(message:Message):
-    await message.answer("Search By: ", reply_markup=searchClickkb)
+async def search_btn(message:Message, **kwargs):
+    await message.answer("Qidirish turi: ", reply_markup=searchClickkb)
     
 
-@user_router.message(F.text== "📚 All")
+@user_router.message(F.text== "📚 Barchasi")
 @check_registration
-async def all_handler(message: Message):
+async def all_handler(message: Message, **kwargs):
     await message.answer("Barcha kitoblarni ko'rish demo", reply_markup=all_kb)
 
-@user_router.message(F.text=="💸 Discount")
+@user_router.message(F.text=="💸 Chegirma")
 @check_registration
-async def discount_handlar(message: Message):
+async def discount_handlar(message: Message, **kwargs):
     await message.answer("Diskountdagi kitoblar: (DEMO)")
 
-@user_router.message(F.text=="🆕 New")
+@user_router.message(F.text=="🆕 Yangiliklar")
 @check_registration
-async def new_hanler(message: Message):
+async def new_hanler(message: Message, **kwargs):
     await message.answer("So'ngi kelgan kitoblar. (Demo)")
 
-@user_router.message(F.text=="⬅️ back")
+@user_router.message(F.text=="⬅️ Orqaga")
 @check_registration
-async def back_menu(message:Message):
+async def back_menu(message:Message, **kwargs):
     await message.answer("📋 Asosiy menyu", reply_markup=after_menukb)
 
 
-@user_router.message(F.text=="🛒 Order")
 @check_registration
 @user_router.message(F.text=="⬅️ Orqaga")
-async def back_menu(message:Message):
+async def back_menu(message:Message, **kwargs):
     await message.answer("📋 Asosiy menyu", reply_markup=menu_kb)
     
 
 @user_router.message(F.text=="🛒 Buyurtma")
-async def order_handler(message:Message):
+async def order_handler(message:Message, **kwargs):
     photo_path = FSInputFile("imgs/image2.png")
     await message.answer("Sizning burutmalaringiz yuklanmoqda...", reply_markup=order_kb)
     await message.answer_photo(photo=photo_path, caption=CAPTION_BOOK, reply_markup=order_ikb)
@@ -253,7 +268,7 @@ async def order_handler(message:Message):
 
 @user_router.message(F.text == "📄 Ma’lumotlarim")
 @check_registration
-async def about_handler(message: Message):
+async def about_handler(message: Message, **kwargs):
     info = get_userInfo(message.from_user.id)
 
     if info:
@@ -269,7 +284,7 @@ async def about_handler(message: Message):
 
 @user_router.message(F.text == "✏️ Tahrirlash")
 @check_registration
-async def start_edit(message: Message, state: FSMContext):
+async def start_edit(message: Message, state: FSMContext, **kwargs):
     """Start the edit process by showing current info and field selection"""
     chat_id = message.from_user.id
 
@@ -587,5 +602,5 @@ async def back_to_field_selection(message: Message, state: FSMContext):
 
 @user_router.message(F.text == "❌ Accountni o‘chirish")
 @check_registration
-async def delate_user(message: Message):
+async def delate_user(message: Message, **kwargs):
     await message.answer("Rostdan ham o'chirmoqchimisz", reply_markup=del_account_inkb)

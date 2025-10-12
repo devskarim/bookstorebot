@@ -19,16 +19,16 @@ phoneNumber_kb = ReplyKeyboardMarkup(
 menu_kb = ReplyKeyboardMarkup(
 	keyboard=[
 		[KeyboardButton(text="📋 Menyu"), KeyboardButton(text="🛒 Buyurtma")],
-     [KeyboardButton(text="📞 Aloqa"),KeyboardButton(text="👤 Profil")],
-	],resize_keyboard=True
+		[KeyboardButton(text="📞 Aloqa"), KeyboardButton(text="👤 Profil")],
+	], resize_keyboard=True
 )
 
 profile_kb = ReplyKeyboardMarkup(
 	keyboard=[
-         [KeyboardButton(text="✏️ Tahrirlash"), KeyboardButton(text="⭐ Sevimlilar")],
-         [KeyboardButton(text="📄 Ma’lumotlarim"),KeyboardButton(text="❌ Accountni o‘chirish")],
- 				[KeyboardButton(text="⬅️ Orqaga")]
- 	],resize_keyboard=True
+		[KeyboardButton(text="✏️ Tahrirlash"), KeyboardButton(text="⭐ Sevimlilar")],
+		[KeyboardButton(text="📄 Ma’lumotlarim"), KeyboardButton(text="❌ Accountni o‘chirish")],
+		[KeyboardButton(text="⬅️ Orqaga")]
+	], resize_keyboard=True
 )
 
 
@@ -45,16 +45,16 @@ after_menukb = ReplyKeyboardMarkup(
 send_toAdminkb = ReplyKeyboardMarkup(
 	keyboard=[
 		[KeyboardButton(text="📤 Yuborish"), KeyboardButton(text="❌ Bekor qilish")]
-	],resize_keyboard=True
+	], resize_keyboard=True
 )
 
 searchClickkb = InlineKeyboardMarkup(
-	inline_keyboard= [
+	inline_keyboard=[
 		[InlineKeyboardButton(text="📚 Sarlavha", callback_data="title")],
-         [InlineKeyboardButton(text="🎭 Janr", callback_data="genre")],
-         [InlineKeyboardButton(text="✍️ Muallif", callback_data="author")],
-         [InlineKeyboardButton(text="⬅️ Orqaga", callback_data="back")]
- 	]
+		[InlineKeyboardButton(text="🎭 Janr", callback_data="genre")],
+		[InlineKeyboardButton(text="✍️ Muallif", callback_data="author")],
+		[InlineKeyboardButton(text="⬅️ Orqaga", callback_data="back")]
+	]
 )
 
 
@@ -135,13 +135,13 @@ edit_back_kb = ReplyKeyboardMarkup(
 )
 
 del_account_inkb = InlineKeyboardMarkup(
-	inline_keyboard =  [
-		[InlineKeyboardButton(text="✅ Tasdiqlash",callback_data=("accept")), InlineKeyboardButton(text="❌ Qaytish", callback_data="ignore")]
-    ]
-) 
+	inline_keyboard=[
+		[InlineKeyboardButton(text="✅ Tasdiqlash", callback_data="accept"), InlineKeyboardButton(text="❌ Qaytish", callback_data="ignore")]
+	]
+)
 
 re_active_inkb = InlineKeyboardMarkup(
-	inline_keyboard= [
-		[InlineKeyboardButton(text="♻️ Qayta Faolashtirish", callback_data="reActivate"), InlineKeyboardButton(text="Yo'q ❌", callback_data="not")] 
-    ]
+	inline_keyboard=[
+		[InlineKeyboardButton(text="♻️ Qayta Faolashtirish", callback_data="reActivate"), InlineKeyboardButton(text="Yo'q ❌", callback_data="not")]
+	]
 )
