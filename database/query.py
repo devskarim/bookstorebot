@@ -22,7 +22,8 @@ def create_tables():
             author VARCHAR(100) NOT NULL,
             price INTEGER NOT NULL,
             genre VARCHAR(50) DEFAULT 'unknown',
-            quantity INTEGER NOT NULL DEFAULT 0
+            quantity INTEGER NOT NULL DEFAULT 0,
+            image_path VARCHAR(255) DEFAULT NULL
         )
         """,
         """
@@ -39,7 +40,28 @@ def create_tables():
     ]
     return tables
 
-# Create tables on import
+def add_image_path_column():
+    """Add image_path column to existing books table"""
+    try:
+        conn = get_connect()
+        cursor = conn.cursor()
+
+        cursor.execute("PRAGMA table_info(books)")
+        columns = [column[1] for column in cursor.fetchall()]
+
+        if 'image_path' not in columns:
+            cursor.execute("ALTER TABLE books ADD COLUMN image_path VARCHAR(255) DEFAULT NULL")
+            conn.commit()
+            print("✅ image_path column added to books table successfully!")
+        else:
+            print("ℹ️ image_path column already exists in books table")
+
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"❌ Error adding image_path column: {e}")
+        return False
+
 try:
     conn = get_connect()
     cursor = conn.cursor()
@@ -48,6 +70,9 @@ try:
     conn.commit()
     conn.close()
     print("Tables created successfully!")
+
+    add_image_path_column()
+
 except Exception as e:
     print(f"Error creating tables: {e}")
 
@@ -132,7 +157,7 @@ def update_users(chat_id, name=None, phone=None, username=None):
         cursor = conn.cursor()
         cursor.execute(query, (name, phone, username, chat_id))
         conn.commit()
-        result = cursor.rowcount > 0  # SQLite3 doesn't have RETURNING, so check rowcount
+        result = cursor.rowcount > 0  
         conn.close()
         return bool(result)
     except Exception as e:

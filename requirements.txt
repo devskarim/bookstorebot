@@ -16,6 +16,7 @@ propcache==0.3.2
 pydantic==2.11.9
 pydantic_core==2.33.2
 python-dotenv==1.1.1
+reportlab==4.4.4
 typing-inspection==0.4.1
 typing_extensions==4.15.0
 yarl==1.20.1
