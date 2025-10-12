@@ -34,8 +34,8 @@ profile_kb = ReplyKeyboardMarkup(
 
 after_menukb = ReplyKeyboardMarkup(
     keyboard=[
-        [KeyboardButton(text="🔎 Search"), KeyboardButton(text="📚 All")],
-        [KeyboardButton(text="💸 Discount"), KeyboardButton(text="🆕 New")],
+        [KeyboardButton(text="🔎 Qidirmoq"), KeyboardButton(text="📚 Barchasi")],
+        [KeyboardButton(text="💸 Chegirma"), KeyboardButton(text="🆕 Yangiliklar")],
         [KeyboardButton(text="⬅️ Back")]
     ],
     resize_keyboard=True

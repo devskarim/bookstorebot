@@ -161,20 +161,20 @@ async def my_profile(message: Message):
 
     
 
-@user_router.message(F.text == "🔎 Search") 
+@user_router.message(F.text == "🔎 Qidirmoq") 
 async def search_btn(message:Message): 
     await message.answer("Search By: ", reply_markup=searchClickkb)
     
 
-@user_router.message(F.text== "📚 All") 
+@user_router.message(F.text== "📚 Barchasi") 
 async def all_handler(message: Message):
     await message.answer("Barcha kitoblarni ko'rish demo", reply_markup=all_kb) 
     
-@user_router.message(F.text=="💸 Discount")
+@user_router.message(F.text=="💸 Chegirma")
 async def discount_handlar(message: Message):
     await message.answer("Diskountdagi kitoblar: (DEMO)") 
     
-@user_router.message(F.text=="🆕 New")
+@user_router.message(F.text=="🆕 Yangiliklar")
 async def new_hanler(message: Message): 
     await message.answer("So'ngi kelgan kitoblar. (Demo)") 
 
