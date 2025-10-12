@@ -1,6 +1,6 @@
 from aiogram.types import (
-	ReplyKeyboardMarkup, ReplyKeyboardRemove, 
-	KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
+    ReplyKeyboardMarkup,
+    KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
 )
 
 register_kb = ReplyKeyboardMarkup( 
@@ -19,14 +19,14 @@ phoneNumber_kb = ReplyKeyboardMarkup(
 menu_kb = ReplyKeyboardMarkup(
 	keyboard=[
 		[KeyboardButton(text="📋 Menyu"), KeyboardButton(text="🛒 Buyurtma")],
-     [KeyboardButton(text="📞 Aloqa"),KeyboardButton(text="👤 Profil")],
+     [KeyboardButton(text="📞 Aloqa"), KeyboardButton(text="👤 Profil")],
 	],resize_keyboard=True
 )
 
 profile_kb = ReplyKeyboardMarkup(
 	keyboard=[
          [KeyboardButton(text="✏️ Tahrirlash"), KeyboardButton(text="⭐ Sevimlilar")],
-         [KeyboardButton(text="📄 Ma’lumotlarim"),KeyboardButton(text="❌ Accountni o‘chirish")],
+         [KeyboardButton(text="📄 Ma'lumotlarim"), KeyboardButton(text="❌ Accountni o'chirish")],
  				[KeyboardButton(text="⬅️ Orqaga")]
  	],resize_keyboard=True
 )
@@ -34,7 +34,7 @@ profile_kb = ReplyKeyboardMarkup(
 
 after_menukb = ReplyKeyboardMarkup(
     keyboard=[
-        [KeyboardButton(text="🔎 Qidirish"), KeyboardButton(text="📚 Barchasi")],
+        [KeyboardButton(text="🔎 Qidirmoq"), KeyboardButton(text="📚 Barchasi")],
         [KeyboardButton(text="💸 Chegirma"), KeyboardButton(text="🆕 Yangiliklar")],
         [KeyboardButton(text="⬅️ Orqaga")]
     ],
@@ -136,9 +136,9 @@ edit_back_kb = ReplyKeyboardMarkup(
 
 del_account_inkb = InlineKeyboardMarkup(
 	inline_keyboard =  [
-		[InlineKeyboardButton(text="✅ Tasdiqlash",callback_data=("accept")), InlineKeyboardButton(text="❌ Qaytish", callback_data="ignore")]
+		[InlineKeyboardButton(text="✅ Tasdiqlash", callback_data="accept"), InlineKeyboardButton(text="❌ Qaytish", callback_data="ignore")]
     ]
-) 
+)
 
 re_active_inkb = InlineKeyboardMarkup(
 	inline_keyboard= [

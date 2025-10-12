@@ -210,26 +210,22 @@ async def my_profile(message: Message):
 
     
 
-@user_router.message(F.text == "🔎 Search")
-@check_registration
-async def search_btn(message:Message):
+@user_router.message(F.text == "🔎 Search") 
+async def search_btn(message:Message): 
     await message.answer("Search By: ", reply_markup=searchClickkb)
     
 
-@user_router.message(F.text== "📚 All")
-@check_registration
+@user_router.message(F.text== "📚 All") 
 async def all_handler(message: Message):
-    await message.answer("Barcha kitoblarni ko'rish demo", reply_markup=all_kb)
-
+    await message.answer("Barcha kitoblarni ko'rish demo", reply_markup=all_kb) 
+    
 @user_router.message(F.text=="💸 Discount")
-@check_registration
 async def discount_handlar(message: Message):
-    await message.answer("Diskountdagi kitoblar: (DEMO)")
-
+    await message.answer("Diskountdagi kitoblar: (DEMO)") 
+    
 @user_router.message(F.text=="🆕 New")
-@check_registration
-async def new_hanler(message: Message):
-    await message.answer("So'ngi kelgan kitoblar. (Demo)")
+async def new_hanler(message: Message): 
+    await message.answer("So'ngi kelgan kitoblar. (Demo)") 
 
 @user_router.message(F.text=="⬅️ back")
 @check_registration
