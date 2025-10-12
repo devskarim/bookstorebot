@@ -1,6 +1,6 @@
 from aiogram.types import (
-	ReplyKeyboardMarkup, ReplyKeyboardRemove, 
-	KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
+    ReplyKeyboardMarkup,
+    KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
 )
 
 register_kb = ReplyKeyboardMarkup( 
@@ -34,7 +34,7 @@ profile_kb = ReplyKeyboardMarkup(
 
 after_menukb = ReplyKeyboardMarkup(
     keyboard=[
-        [KeyboardButton(text="🔎 Qidirish"), KeyboardButton(text="📚 Barchasi")],
+        [KeyboardButton(text="🔎 Qidirmoq"), KeyboardButton(text="📚 Barchasi")],
         [KeyboardButton(text="💸 Chegirma"), KeyboardButton(text="🆕 Yangiliklar")],
         [KeyboardButton(text="⬅️ Orqaga")]
     ],
