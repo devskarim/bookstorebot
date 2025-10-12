@@ -5,8 +5,8 @@ from aiogram.types import (
 
 adminmenu_kb = ReplyKeyboardMarkup(
     keyboard=[
-        [KeyboardButton(text="🛒 Buyurtmalar"), KeyboardButton(text="📊 Boshqaruv paneli")],
-        [KeyboardButton(text="⬅️ Ortga")]
+        [KeyboardButton(text="📋 Menu"), KeyboardButton(text="📊 Boshqaruv paneli")],
+        [KeyboardButton(text="🛍 Buyurtmalar")]
     ],
     resize_keyboard=True
 )
@@ -21,3 +21,9 @@ def reply_toUser(user_id):
         ]
     )
 
+admin_menu_kb = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text="➕ Kitob qo'shish"), KeyboardButton(text="📄 Barchasini korish")], 
+        [KeyboardButton(text="➖ Kitob o'chirish"), KeyboardButton(text="⬅️ orqa")]
+    ],resize_keyboard=True
+)

@@ -13,17 +13,12 @@ dp = Dispatcher()
 async def main():
     env = Env()
     env.read_env()
-    # bot = Bot(token=env.str("TOKEN"))
-    bot = Bot(token="7806379930:AAEZ_QJbwDKxkhj4pRecXEJQ7_BTkb4iqZk")
+    bot = Bot(token=env.str("TOKEN"))
     dp.include_router(usercall_router)
     dp.include_router(user_router)
     dp.include_router(admin_router)
     await dp.start_polling(bot)
 
-if __name__ == "__main__": 
-    logging.basicConfig(level=logging.INFO) 
-    asyncio.run(main()) 
-
-
-
-# this is best part for doing anything else now i'm gonna do admin panel 
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    asyncio.run(main())
