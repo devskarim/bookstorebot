@@ -1,7 +1,7 @@
 from aiogram import F, Router
-from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton
-from buttons import after_menukb, menu_kb, register_kb, re_active_inkb, REG_TEXT, profile_kb
-from database import user_dell_acc, reActive, get_user_by_chat_id, user_hard_delete
+from aiogram.types import CallbackQuery, Message, ReplyKeyboardRemove
+from buttons import after_menukb, menu_kb, register_kb, re_active_inkb, profile_kb
+from database import user_dell_acc, reActive, get_user_by_chat_id
 
 usercall_router = Router()
 
@@ -20,14 +20,7 @@ def check_registration_callback(func):
             await callback.answer("Avval ro'yxatdan o'ting")
             return
 
-        if user.get('is_active') == 0:
-            await callback.message.answer(
-                "🚫 Sizning akkauntingiz to'xtatilgan.\n"
-                "Qayta faollashtirmoqchimisiz?",
-                reply_markup=re_active_inkb
-            )
-            await callback.answer("Akkaunt faol emas")
-            return
+        # Removed inactive user check - start handler will handle this
 
         return await func(callback, *args, **kwargs)
     return wrapper
@@ -56,8 +49,8 @@ async def back_handler(callback: CallbackQuery, **kwargs):
 @check_registration_callback
 async def del_account (callback: CallbackQuery, **kwargs):
     chat_id = callback.from_user.id
-    if user_hard_delete(chat_id):
-        await callback.message.edit_text("✅ Sizning akkauntingiz butunlay o'chirildi.")
+    if user_dell_acc(chat_id):
+        await callback.message.edit_text("✅ Sizning akkauntingiz to'xtatildi.")
         await callback.message.answer("Botni qayta ishga tushirish uchun /start ni bosing", reply_markup=ReplyKeyboardRemove())
         await callback.answer()
     else:
@@ -90,33 +83,3 @@ async def not_handler(callback:CallbackQuery, **kwargs):
 Yaxshi, akkauntingiz hozircha faol holatga o'tkazilmadi 🚫\nAgar fikringiz o'zgarsa, istalgan payt /start ni bosing va qayta faollashtirishingiz mumkin 🙂
 """)
 
-
-@usercall_router.callback_query(F.data == "reactivate")
-async def reactivate_account(callback: CallbackQuery, **kwargs):
-    chat_id = callback.from_user.id
-    if reActive(chat_id):
-        await callback.message.edit_text("Sizning akkauntingiz qayta faollashdi! 🎉")
-        await callback.message.answer("👋 Xush kelibsiz", reply_markup=menu_kb)
-        await callback.answer()
-    else:
-        await callback.message.answer("❌ Xatolik yuz berdi. Qayta urinib ko'ring.")
-        await callback.answer()
-
-
-@usercall_router.callback_query(F.data == "reregister")
-async def reregister_account(callback: CallbackQuery, **kwargs):
-    chat_id = callback.from_user.id
-    if user_hard_delete(chat_id):
-        await callback.message.edit_text("✅ Avvalgi ma'lumotlaringiz o'chirildi.\nEndi qayta ro'yxatdan o'tishingiz mumkin.")
-        from states import Register
-        await callback.message.answer(REG_TEXT, reply_markup=ReplyKeyboardRemove())
-        await callback.answer()
-    else:
-        await callback.message.answer("❌ Xatolik yuz berdi. Qayta urinib ko'ring.")
-        await callback.answer()
-
-
-@usercall_router.callback_query(F.data == "cancel")
-async def cancel_choice(callback: CallbackQuery, **kwargs):
-    await callback.message.edit_text("✅ Bekor qilindi. Botdan foydalanishni davom ettirishingiz mumkin.")
-    await callback.answer()

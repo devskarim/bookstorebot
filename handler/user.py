@@ -1,4 +1,4 @@
-from aiogram.types import Message, ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import Message, ReplyKeyboardRemove
 from aiogram import Router, F
 from aiogram.filters import Command, CommandStart
 from aiogram.types.input_media_photo import InputMediaPhoto
@@ -8,13 +8,13 @@ import logging
 from buttons import REG_TEXT, GET_PHONE,ERR_NAME, SUCCES_REG,ALREADY_IN, CAPTION_BOOK, menu_kb
 from buttons import register_kb, phoneNumber_kb, menu_kb, after_menukb, send_toAdminkb
 from buttons import searchClickkb, all_kb, profile_kb,order_ikb, order_kb,skip_kb,phone_user_kb
-from buttons import edit_field_kb, edit_confirm_kb, edit_back_kb, del_account_inkb,re_active_inkb
+from buttons import edit_field_kb, edit_confirm_kb, edit_back_kb, del_account_inkb, re_active_inkb
 from buttons import CONTACT_ADMIN
 from buttons import reply_toUser
 
-from states import conntact_withAdmin, ContactAdmin, Register, FSMContext, EditStates, State
+from states import conntact_withAdmin, ContactAdmin, Register, FSMContext, EditStates
 from filters import validate_name,validate_uz_phone
-from database import save_users, is_register_byChatId, get_userInfo, update_users, user_dell_acc, user_hard_delete
+from database import save_users, is_register_byChatId, get_userInfo, update_users, user_dell_acc
 from database import get_user_by_chat_id
 
 
@@ -39,7 +39,6 @@ def check_registration(func):
             )
             return
 
-        # Filter out dispatcher and other internal kwargs that the function doesn't expect
         filtered_kwargs = {k: v for k, v in kwargs.items()
                           if k not in ['dispatcher', 'bot', 'event_update']}
 
@@ -62,16 +61,7 @@ def check_registration_callback(func):
             await callback.answer("Avval ro'yxatdan o'ting")
             return
 
-        if user.get('is_active') == 0 or user.get('is_active') is False:
-            await callback.message.answer(
-                "🚫 Sizning akkauntingiz to'xtatilgan.\n"
-                "Qayta faollashtirmoqchimisiz?",
-                reply_markup=re_active_inkb
-            )
-            await callback.answer("Akkaunt faol emas")
-            return
 
-        # Filter out dispatcher and other internal kwargs that the function doesn't expect
         filtered_kwargs = {k: v for k, v in kwargs.items()
                           if k not in ['dispatcher', 'bot', 'event_update']}
 
@@ -106,19 +96,10 @@ async def start(message: Message, state: FSMContext):
         return
 
     if user.get('is_active') == 0:
-        # Create a choice keyboard for inactive users
-        from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-        choice_kb = InlineKeyboardMarkup(
-            inline_keyboard=[
-                [InlineKeyboardButton(text="♻️ Qayta faollashtirish", callback_data="reactivate")],
-                [InlineKeyboardButton(text="🔄 Qayta ro'yxatdan o'tish", callback_data="reregister")],
-                [InlineKeyboardButton(text="❌ Bekor qilish", callback_data="cancel")]
-            ]
-        )
         await message.answer(
-            "🚫 Sizning akkauntingiz to'xtatilgan.\n\n"
-            "Nima qilmoqchisiz?",
-            reply_markup=choice_kb
+            "🚫 Sizning akkauntingiz to'xtatilgan.\n"
+            "Qayta faollashtirmoqchimisiz?",
+            reply_markup=re_active_inkb
         )
         return
 
@@ -129,7 +110,12 @@ async def start(message: Message, state: FSMContext):
         reply_markup=menu_kb
     )
 
-    
+
+@user_router.message(F.text == "Ro'yxatdan O'tish")
+async def register_handler(message: Message, state: FSMContext):
+    await message.answer("Ismingizni kiriting: ", reply_markup=ReplyKeyboardRemove())
+    await state.set_state(Register.name) 
+
 @user_router.message(Register.name)
 async def get_name(message: Message, state: FSMContext):
     name = message.text.strip()  
