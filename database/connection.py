@@ -1,16 +1,16 @@
+import sqlite3
+import os
 from environs import Env
-from psycopg2 import connect
 
 env = Env()
 env.read_env()
 
+DB_PATH = "bookstore.db"
 
 def get_connect():
-    return connect(
-        user=env.str("DB_USER"),
-        password=env.str("DB_PASSWORD"),
-        database=env.str("DATABASE"),
-        host=env.str("DB_HOST"),
-        port=env.str("DB_PORT"),
-    )
+   """Create and return SQLite3 database connection"""
+   # Create database directory if it doesn't exist
+   os.makedirs(os.path.dirname(DB_PATH) if os.path.dirname(DB_PATH) else '.', exist_ok=True)
+
+   return sqlite3.connect(DB_PATH)
 
