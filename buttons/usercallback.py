@@ -19,9 +19,6 @@ def check_registration_callback(func):
             )
             await callback.answer("Avval ro'yxatdan o'ting")
             return
-
-        # Removed inactive user check - start handler will handle this
-
         return await func(callback, *args, **kwargs)
     return wrapper
 
