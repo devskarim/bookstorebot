@@ -1,6 +1,6 @@
 from aiogram.types import (
-	ReplyKeyboardMarkup, ReplyKeyboardRemove, 
-	KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
+    ReplyKeyboardMarkup,
+    KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
 )
 
 register_kb = ReplyKeyboardMarkup( 
@@ -18,17 +18,17 @@ phoneNumber_kb = ReplyKeyboardMarkup(
 
 menu_kb = ReplyKeyboardMarkup(
 	keyboard=[
-		[KeyboardButton(text="📋 Menu"), KeyboardButton(text="🛒 Order")],
-    [KeyboardButton(text="📞 Contact"),KeyboardButton(text="👤 Profil")],
+		[KeyboardButton(text="📋 Menyu"), KeyboardButton(text="🛒 Buyurtma")],
+     [KeyboardButton(text="📞 Aloqa"), KeyboardButton(text="👤 Profil")],
 	],resize_keyboard=True
 )
 
 profile_kb = ReplyKeyboardMarkup(
 	keyboard=[
-        [KeyboardButton(text="✏️ Tahrirlash"), KeyboardButton(text="⭐ Sevimlilar")],
-        [KeyboardButton(text="📄 Ma’lumotlarim"),KeyboardButton(text="❌ Accountni o‘chirish")], 
-				[KeyboardButton(text="⬅️ Back")]
-	],resize_keyboard=True
+         [KeyboardButton(text="✏️ Tahrirlash"), KeyboardButton(text="⭐ Sevimlilar")],
+         [KeyboardButton(text="📄 Ma'lumotlarim"), KeyboardButton(text="❌ Accountni o'chirish")],
+ 				[KeyboardButton(text="⬅️ Orqaga")]
+ 	],resize_keyboard=True
 )
 
 
@@ -36,7 +36,7 @@ after_menukb = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="🔎 Qidirmoq"), KeyboardButton(text="📚 Barchasi")],
         [KeyboardButton(text="💸 Chegirma"), KeyboardButton(text="🆕 Yangiliklar")],
-        [KeyboardButton(text="⬅️ Back")]
+        [KeyboardButton(text="⬅️ Orqaga")]
     ],
     resize_keyboard=True
 )
@@ -50,17 +50,17 @@ send_toAdminkb = ReplyKeyboardMarkup(
 
 searchClickkb = InlineKeyboardMarkup(
 	inline_keyboard= [
-		[InlineKeyboardButton(text="📚 Title", callback_data="title")],
-        [InlineKeyboardButton(text="🎭 Genre", callback_data="genre")],
-        [InlineKeyboardButton(text="✍️ Author", callback_data="author")],
-        [InlineKeyboardButton(text="⬅️ Back", callback_data="back")]
-	]
+		[InlineKeyboardButton(text="📚 Sarlavha", callback_data="title")],
+         [InlineKeyboardButton(text="🎭 Janr", callback_data="genre")],
+         [InlineKeyboardButton(text="✍️ Muallif", callback_data="author")],
+         [InlineKeyboardButton(text="⬅️ Orqaga", callback_data="back")]
+ 	]
 )
 
 
 all_kb = ReplyKeyboardMarkup (
 	keyboard= [
-		[KeyboardButton(text="⬅️ back"), KeyboardButton(text="📋 Main menu")]
+		[KeyboardButton(text="⬅️ Orqaga"), KeyboardButton(text="📋 Asosiy menyu")]
 	],resize_keyboard=True
 )
 
@@ -73,16 +73,16 @@ order_ikb = InlineKeyboardMarkup(
 			InlineKeyboardButton(text="➕", callback_data="minusOne")
 		],
 		[
-			InlineKeyboardButton(text="❌ Cancel", callback_data="sendItem"),
-			InlineKeyboardButton(text="🛒 Add to card", callback_data="Add_toCard"),
-			InlineKeyboardButton(text="✅ Send", callback_data="Cancel_item")
+			InlineKeyboardButton(text="❌ Bekor qilish", callback_data="sendItem"),
+			InlineKeyboardButton(text="🛒 Savatchaga qo'shish", callback_data="Add_toCard"),
+			InlineKeyboardButton(text="✅ Yuborish", callback_data="Cancel_item")
 		]
 	]
 )
 
 order_kb = ReplyKeyboardMarkup(
 	keyboard= [
-		[KeyboardButton(text="⭐️ Sevimlilarga qoshish"), KeyboardButton(text="⬅️ Back")]
+		[KeyboardButton(text="⭐️ Sevimlilarga qo'shish"), KeyboardButton(text="⬅️ Orqaga")]
 	],resize_keyboard=True
 )
 
@@ -136,9 +136,9 @@ edit_back_kb = ReplyKeyboardMarkup(
 
 del_account_inkb = InlineKeyboardMarkup(
 	inline_keyboard =  [
-		[InlineKeyboardButton(text="✅ Tasdiqlash",callback_data=("accept")), InlineKeyboardButton(text="❌ Qaytish", callback_data="ignore")]
+		[InlineKeyboardButton(text="✅ Tasdiqlash", callback_data="accept"), InlineKeyboardButton(text="❌ Qaytish", callback_data="ignore")]
     ]
-) 
+)
 
 re_active_inkb = InlineKeyboardMarkup(
 	inline_keyboard= [
