@@ -159,19 +159,6 @@ def user_dell_acc(chat_id):
         return False
 
 
-def user_hard_delete(chat_id):
-    """Hard delete - completely remove user from database"""
-    query = "DELETE FROM users WHERE chat_id = ?"
-    try:
-        conn = get_connect()
-        cursor = conn.cursor()
-        cursor.execute(query, (chat_id,))
-        conn.commit()
-        conn.close()
-        return True
-    except Exception as e:
-        print(f"Error deleting user: {e}")
-        return False
     
 
 def get_user_by_chat_id(chat_id):
