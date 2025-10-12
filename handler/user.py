@@ -30,7 +30,6 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('user_edit.log'),
         logging.StreamHandler()
     ]
 )
@@ -155,8 +154,8 @@ async def send_toAdmin(message:Message, state: FSMContext):
         await message.answer("⚠️ Avval xabar yozing.")
 
 
-@user_router.message(F.text == "👤 Profil") 
-async def my_profile(message: Message): 
+@user_router.message(F.text == "👤 Profil")
+async def my_profile(message: Message, **kwargs):
     await message.answer("👤 Profil", reply_markup=profile_kb)
 
     
