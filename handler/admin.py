@@ -116,16 +116,51 @@ async def view_all_books(message: Message, **kwargs):
     else:
         if not REPORTLAB_AVAILABLE and not PDFKIT_AVAILABLE:
             await message.answer(
-                "❌ PDF yaratishda xatolik yuz berdi (ReportLab va pdfkit ikkalasi ham o'rnatilmagan).\n\n"
-                "Matn ko'rinishida ko'rish:",
+                "❌ PDF yaratishda xatolik yuz berdi!\n\n"
+                "📦 <b>Kerakli kutubxonalar o'rnatilmagan:</b>\n\n"
+                "💡 <b>O'rnatish uchun:</b>\n"
+                "<code>pip install reportlab</code>\n\n"
+                "📝 <b>Yoki alternativ:</b>\n"
+                "<code>pip install pdfkit</code>\n\n"
+                "🔧 <b>Barchasini o'rnatish:</b>\n"
+                "<code>pip install -r requirements.txt</code>\n\n"
+                "⏳ <i>Kutubxonalar o'rnatilguncha matn ko'rinishida ko'rsatiladi</i>",
+                parse_mode="HTML",
                 reply_markup=admin_menu_kb
             )
         else:
-            await message.answer(
-                "❌ PDF yaratishda xatolik yuz berdi.\n\n"
-                "Matn ko'rinishida ko'rish:",
-                reply_markup=admin_menu_kb
-            )
+            if not REPORTLAB_AVAILABLE:
+                await message.answer(
+                    "❌ PDF yaratishda xatolik yuz berdi!\n\n"
+                    "📦 <b>ReportLab kutubxonasi o'rnatilmagan</b>\n\n"
+                    "💡 <b>O'rnatish uchun:</b>\n"
+                    "<code>pip install reportlab</code>\n\n"
+                    "📝 <b>Yoki alternativ:</b>\n"
+                    "<code>pip install pdfkit</code>\n\n"
+                    "⏳ <i>Hozircha matn ko'rinishida ko'rsatiladi</i>",
+                    parse_mode="HTML",
+                    reply_markup=admin_menu_kb
+                )
+            elif not PDFKIT_AVAILABLE:
+                await message.answer(
+                    "❌ PDF yaratishda xatolik yuz berdi!\n\n"
+                    "📦 <b>pdfkit kutubxonasi o'rnatilmagan</b>\n\n"
+                    "💡 <b>O'rnatish uchun:</b>\n"
+                    "<code>pip install pdfkit</code>\n\n"
+                    "📝 <b>Yoki asosiy:</b>\n"
+                    "<code>pip install reportlab</code>\n\n"
+                    "⏳ <i>Hozircha matn ko'rinishida ko'rsatiladi</i>",
+                    parse_mode="HTML",
+                    reply_markup=admin_menu_kb
+                )
+            else:
+                await message.answer(
+                    "❌ PDF yaratishda noma'lum xatolik yuz berdi.\n\n"
+                    "📞 <b>Admin bilan bog'laning</b>\n\n"
+                    "⏳ <i>Matn ko'rinishida ko'rsatiladi</i>",
+                    parse_mode="HTML",
+                    reply_markup=admin_menu_kb
+                )
         await show_books_as_text(message, books)
 
 async def show_books_as_text(message: Message, books):
