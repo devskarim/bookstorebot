@@ -168,7 +168,7 @@ async def show_books_as_text(message: Message, books):
 
     for book in books:
         response += (
-            f"🆔 ID: {book['id']}\n"
+            f"ID: {book['id']}\n"
             f"📖 Nomi: {book['title']}\n"
             f"✍️ Muallifi: {book['author']}\n"
             f"💰 Narxi: {book['price']}\n"

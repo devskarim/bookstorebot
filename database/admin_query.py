@@ -608,7 +608,6 @@ def create_order(user_id, delivery_address, payment_type, total_amount, book_id=
         conn = get_connect()
         cursor = conn.cursor()
 
-        # Insert order
         cursor.execute("""
             INSERT INTO orders (user_id, delivery_address, payment_type, total_amount, status)
             VALUES (?, ?, ?, ?, 'pending')
@@ -617,19 +616,16 @@ def create_order(user_id, delivery_address, payment_type, total_amount, book_id=
         order_id = cursor.lastrowid
 
         if book_id and quantity and price:
-            # Single book order - insert directly into order_items
             cursor.execute("""
                 INSERT INTO order_items (order_id, book_id, quantity, price)
                 VALUES (?, ?, ?, ?)
             """, (order_id, book_id, quantity, price))
         else:
-            # Cart order - move cart items to order_items
             cursor.execute("""
                 INSERT INTO order_items (order_id, book_id, quantity, price)
                 SELECT ?, book_id, quantity, price FROM cart WHERE user_id = ?
             """, (order_id, user_id))
 
-            # Clear user's cart only for cart orders
             cursor.execute("DELETE FROM cart WHERE user_id = ?", (user_id,))
 
         conn.commit()

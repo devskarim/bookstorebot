@@ -335,7 +335,6 @@ async def view_orders(message: Message, **kwargs):
     response += f"📄 Sahifa {orders_data['current_page']}/{orders_data['total_pages']}"
 
     if orders_data['total_pages'] > 1:
-        # Add pagination buttons for orders
         from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
         nav_buttons = []
@@ -367,7 +366,15 @@ async def process_cart_order(message: Message, state: FSMContext):
         await message.answer("❌ Savatcha bo'sh")
         return
 
-    total_amount = sum(item['quantity'] * item['price'] for item in cart_items)
+    # Calculate total amount with validation
+    total_amount = 0
+    for item in cart_items:
+        if item.get('quantity', 0) > 0 and item.get('price', 0) > 0:
+            total_amount += item['quantity'] * item['price']
+
+    if total_amount <= 0:
+        await message.answer("❌ Savatcha summasi noto'g'ri") 
+        return
 
     await state.set_state(OrderProcess.entering_delivery_info)
     await state.update_data(cart_order=True, total_amount=total_amount)
@@ -390,8 +397,8 @@ async def get_delivery_info_for_cart(message: Message, state: FSMContext, **kwar
     """Get delivery address for cart order and proceed to payment"""
     delivery_address = message.text.strip()
 
-    if len(delivery_address) < 10:
-        await message.answer("❌ Yetkazish manzili to'liq emas. Iltimos, batafsil yozing:")
+    if not delivery_address or len(delivery_address) < 10:
+        await message.answer("❌ Yetkazish manzili to'liq emas. Iltimos, batafsil yozing (kamida 10 ta belgi):")
         return
 
     await state.update_data(delivery_address=delivery_address)
@@ -768,7 +775,7 @@ async def delate_user(message: Message, **kwargs):
 @user_router.callback_query(F.data == "title")
 async def search_by_title(callback: CallbackQuery, state: FSMContext):
     await state.update_data(search_type="title")
-    await callback.message.answer("📚 Qaysi sarlavha bo'yicha qidirmoqchisiz?")
+    await callback.message.edit_text("📚 Qaysi sarlavha bo'yicha qidirmoqchisiz?")
     await state.set_state(BookSearch.waiting_for_search_query)
     await callback.answer()
 
@@ -776,7 +783,7 @@ async def search_by_title(callback: CallbackQuery, state: FSMContext):
 @user_router.callback_query(F.data == "genre")
 async def search_by_genre(callback: CallbackQuery, state: FSMContext):
     await state.update_data(search_type="genre")
-    await callback.message.answer("🎭 Qaysi janr bo'yicha qidirmoqchisiz?")
+    await callback.message.edit_text("🎭 Qaysi janr bo'yicha qidirmoqchisiz?")
     await state.set_state(BookSearch.waiting_for_search_query)
     await callback.answer()
 
@@ -784,7 +791,7 @@ async def search_by_genre(callback: CallbackQuery, state: FSMContext):
 @user_router.callback_query(F.data == "author")
 async def search_by_author(callback: CallbackQuery, state: FSMContext):
     await state.update_data(search_type="author")
-    await callback.message.answer("✍️ Qaysi muallif bo'yicha qidirmoqchisiz?")
+    await callback.message.edit_text("✍️ Qaysi muallif bo'yicha qidirmoqchisiz?")
     await state.set_state(BookSearch.waiting_for_search_query)
     await callback.answer()
 
@@ -834,7 +841,7 @@ async def process_search_query(message: Message, state: FSMContext):
         pagination_data['books']
     )
 
-    await message.answer(response, reply_markup=pagination_keyboard)
+    await message.answer(response, reply_markup=pagination_keyboard, parse_mode="HTML")
     await state.update_data(
         search_query=search_query,
         search_type=search_type,
@@ -985,19 +992,17 @@ async def handle_next_page(callback: CallbackQuery, state: FSMContext):
 @user_router.callback_query(F.data.startswith("select_book_"))
 async def handle_book_selection(callback: CallbackQuery, state: FSMContext):
     try:
-        # Parse callback data: select_book_{book_num}_{current_page}_{search_type}_{search_query}
+       
         parts = callback.data.split('_')
         book_num = int(parts[2])
         current_page = int(parts[3])
         search_type = parts[4] if len(parts) > 4 else None
         search_query = '_'.join(parts[5:]) if len(parts) > 5 else None
 
-        # Get current search data
         data = await state.get_data()
         user_search_query = data.get('search_query')
         user_search_type = data.get('search_type')
 
-        # Use data from callback if available, otherwise use state data
         final_search_query = search_query or user_search_query
         final_search_type = search_type or user_search_type
 
@@ -1005,7 +1010,6 @@ async def handle_book_selection(callback: CallbackQuery, state: FSMContext):
             await callback.answer("❌ Qidirish ma'lumotlari topilmadi")
             return
 
-        # Get books for current page
         pagination_data = get_books_paginated(
             page=current_page,
             per_page=10,
@@ -1019,10 +1023,9 @@ async def handle_book_selection(callback: CallbackQuery, state: FSMContext):
 
         selected_book = pagination_data['books'][book_num - 1]
 
-        # Show detailed book information with image if available
         if selected_book.get('image_path') and selected_book['image_path'] != 'None':
             try:
-                # Send image with book details as caption
+              
                 photo_path = FSInputFile(selected_book['image_path'])
                 caption = f"📖 <b>{selected_book['title']}</b>\n\n"
                 caption += f"👨‍🏫 Muallif: {selected_book['author']}\n"
@@ -1036,7 +1039,7 @@ async def handle_book_selection(callback: CallbackQuery, state: FSMContext):
 
                 await callback.message.answer_photo(photo_path, caption=caption, reply_markup=order_ikb, parse_mode="HTML")
             except Exception as e:
-                # If image fails to load, show text only
+                
                 response = f"📖 <b>{selected_book['title']}</b>\n\n"
                 response += f"👨‍🏫 Muallif: {selected_book['author']}\n"
                 response += f"🎭 Janr: {selected_book['genre']}\n"
@@ -1049,7 +1052,7 @@ async def handle_book_selection(callback: CallbackQuery, state: FSMContext):
 
                 await callback.message.edit_text(response, reply_markup=order_ikb, parse_mode="HTML")
         else:
-            # No image available, show text only
+            #
             response = f"📖 <b>{selected_book['title']}</b>\n\n"
             response += f"👨‍🏫 Muallif: {selected_book['author']}\n"
             response += f"🎭 Janr: {selected_book['genre']}\n"
@@ -1108,22 +1111,22 @@ async def decrease_quantity(callback: CallbackQuery, state: FSMContext):
 
         await state.update_data(order_quantity=new_quantity)
 
-        # Check if message content has actually changed
+        
         new_caption = format_book_display_message(book, new_quantity, total_price)
 
         try:
-            # Try to get current caption if it's a photo message
+            
             if book.get('image_path') and book['image_path'] != 'None':
                 current_caption = getattr(callback.message, 'caption', "") or ""
                 if current_caption != new_caption:
                     await callback.message.edit_caption(new_caption, reply_markup=order_ikb, parse_mode="HTML")
             else:
-                # For text-only messages
+               
                 current_text = getattr(callback.message, 'text', "") or ""
                 if current_text != new_caption:
                     await callback.message.edit_text(new_caption, reply_markup=order_ikb, parse_mode="HTML")
         except Exception as e:
-            # If editing fails, send a new message (fallback)
+            
             try:
                 if book.get('image_path') and book['image_path'] != 'None':
                     photo_path = FSInputFile(book['image_path'])
@@ -1159,22 +1162,22 @@ async def increase_quantity(callback: CallbackQuery, state: FSMContext):
 
     await state.update_data(order_quantity=new_quantity)
 
-    # Check if message content has actually changed
+    
     new_caption = format_book_display_message(book, new_quantity, total_price)
 
     try:
-        # Try to get current caption if it's a photo message
+       
         if book.get('image_path') and book['image_path'] != 'None':
             current_caption = getattr(callback.message, 'caption', "") or ""
             if current_caption != new_caption:
                 await callback.message.edit_caption(new_caption, reply_markup=order_ikb, parse_mode="HTML")
         else:
-            # For text-only messages
+           
             current_text = getattr(callback.message, 'text', "") or ""
             if current_text != new_caption:
                 await callback.message.edit_text(new_caption, reply_markup=order_ikb, parse_mode="HTML")
     except Exception as e:
-        # If editing fails, send a new message (fallback)
+        #
         try:
             if book.get('image_path') and book['image_path'] != 'None':
                 photo_path = FSInputFile(book['image_path'])
@@ -1249,7 +1252,7 @@ async def send_order(callback: CallbackQuery, state: FSMContext):
         order_book_id=book['id'],
         order_quantity=quantity,
         order_price=total_price,
-        selected_book=book  # Also store the complete book object for fallback
+        selected_book=book  
     )
 
     await state.set_state(OrderProcess.entering_delivery_info)
@@ -1296,7 +1299,6 @@ async def back_from_delivery(message: Message, state: FSMContext, **kwargs):
 
 @user_router.message(OrderProcess.entering_delivery_info, F.text == "❌ Bekor qilish")
 async def cancel_order_process(message: Message, state: FSMContext, **kwargs):
-    """Cancel order process"""
     await state.clear()
     await message.answer("✅ Buyurtma bekor qilindi", reply_markup=menu_kb)
 
@@ -1305,8 +1307,8 @@ async def get_delivery_info(message: Message, state: FSMContext, **kwargs):
     """Get delivery address and proceed to payment"""
     delivery_address = message.text.strip()
 
-    if len(delivery_address) < 10:
-        await message.answer("❌ Yetkazish manzili to'liq emas. Iltimos, batafsil yozing:")
+    if not delivery_address or len(delivery_address) < 10:
+        await message.answer("❌ Yetkazish manzili to'liq emas. Iltimos, batafsil yozing (kamida 10 ta belgi):")
         return
 
     await state.update_data(delivery_address=delivery_address)
@@ -1337,38 +1339,47 @@ async def confirm_cart_payment(callback: CallbackQuery, state: FSMContext):
         await callback.answer("❌ Buyurtma ma'lumotlari to'liq emas")
         return
 
+    if total_amount <= 0:
+        await callback.answer("❌ Buyurtma summasi noto'g'ri")
+        return
+
     user_id = callback.from_user.id
 
-    # Create order from cart (no specific book info needed)
-    order_id = create_order(
-        user_id=user_id,
-        delivery_address=delivery_address,
-        payment_type="card",
-        total_amount=total_amount
-    )
-
-    if order_id:
-        from buttons import reply_toUser
-        await callback.bot.send_message(
-            Admin_ID,
-            f"🆕 Yangi buyurtma (savatchadan)!\n\n"
-            f"👤 User ID: {user_id}\n"
-            f"📦 Buyurtma ID: {order_id}\n"
-            f"💰 Summa: {total_amount} so'm\n"
-            f"📍 Manzil: {delivery_address}\n"
-            f"💳 To'lov: Karta",
-            reply_markup=reply_toUser(user_id)
+   
+    try:
+        order_id = create_order(
+            user_id=user_id,
+            delivery_address=delivery_address,
+            payment_type="card",
+            total_amount=total_amount
         )
 
-        await state.clear()
-        await callback.message.answer(
-            "✅ Buyurtma yuborildi!\n\n"
-            "📋 Buyurtmalaringizni ko'rish uchun:\n"
-            "🛒 Buyurtma → 📦 Mening buyurtmalarim",
-            reply_markup=menu_kb
-        )
-    else:
-        await callback.answer("❌ Buyurtma yaratishda xatolik yuz berdi")
+        if order_id:
+            from buttons import reply_toUser
+            await callback.bot.send_message(
+                Admin_ID,
+                f"🆕 Yangi buyurtma (savatchadan)!\n\n"
+                f"👤 User ID: {user_id}\n"
+                f"📦 Buyurtma ID: {order_id}\n"
+                f"💰 Summa: {total_amount} so'm\n"
+                f"📍 Manzil: {delivery_address}\n"
+                f"💳 To'lov: Karta",
+                reply_markup=reply_toUser(user_id)
+            )
+
+            await state.clear()
+            await callback.message.answer(
+                "✅ Buyurtma yuborildi!\n\n"
+                "📋 Buyurtmalaringizni ko'rish uchun:\n"
+                "🛒 Buyurtma → 📦 Mening buyurtmalarim",
+                reply_markup=menu_kb
+            )
+        else:
+            logger.error(f"Failed to create order for user {user_id}")
+            await callback.answer("❌ Buyurtma yaratishda xatolik yuz berdi")
+    except Exception as e:
+        logger.error(f"Error creating cart order for user {user_id}: {e}")
+        await callback.answer("❌ Buyurtma yaratishda texnik xatolik yuz berdi")
 
     await callback.answer()
 
@@ -1383,7 +1394,7 @@ async def confirm_card_payment(callback: CallbackQuery, state: FSMContext):
     price = data.get('order_price', 0)
     selected_book = data.get('selected_book')
 
-    # More flexible validation - as long as we have delivery address and either book_id or selected_book
+
     if not delivery_address:
         await callback.answer("❌ Yetkazish manzili ko'rsatilmagan")
         return
@@ -1392,13 +1403,12 @@ async def confirm_card_payment(callback: CallbackQuery, state: FSMContext):
         await callback.answer("❌ Kitob ma'lumotlari topilmadi")
         return
 
-    # Use book_id if available, otherwise get it from selected_book
+
     final_book_id = book_id or (selected_book.get('id') if selected_book else None)
     final_quantity = quantity or 1
     final_price = price or (selected_book.get('price', 0) * final_quantity if selected_book else 0)
 
     if not final_book_id or final_price <= 0:
-        # Debug information
         debug_info = f"Debug: delivery_address={bool(delivery_address)}, book_id={book_id}, selected_book={bool(selected_book)}, price={final_price}"
         logger.warning(f"Order validation failed for user {callback.from_user.id}: {debug_info}")
         await callback.answer("❌ Buyurtma ma'lumotlari to'liq emas")
@@ -1406,39 +1416,43 @@ async def confirm_card_payment(callback: CallbackQuery, state: FSMContext):
 
     user_id = callback.from_user.id
 
-    # Create order with single book information
-    order_id = create_order(
-        user_id=user_id,
-        delivery_address=delivery_address,
-        payment_type="card",
-        total_amount=final_price,
-        book_id=final_book_id,
-        quantity=final_quantity,
-        price=selected_book.get('price', 0) if selected_book else 0
-    )
-
-    if order_id:
-        from buttons import reply_toUser
-        await callback.bot.send_message(
-            Admin_ID,
-            f"🆕 Yangi buyurtma!\n\n"
-            f"👤 User ID: {user_id}\n"
-            f"📦 Buyurtma ID: {order_id}\n"
-            f"💰 Summa: {final_price} so'm\n"
-            f"📍 Manzil: {delivery_address}\n"
-            f"💳 To'lov: Karta",
-            reply_markup=reply_toUser(user_id)
+    try:
+        order_id = create_order(
+            user_id=user_id,
+            delivery_address=delivery_address,
+            payment_type="card",
+            total_amount=final_price,
+            book_id=final_book_id,
+            quantity=final_quantity,
+            price=selected_book.get('price', 0) if selected_book else 0
         )
 
-        await state.clear()
-        await callback.message.answer(
-            "✅ Buyurtma yuborildi!\n\n"
-            "📋 Buyurtmalaringizni ko'rish uchun:\n"
-            "🛒 Buyurtma → 📦 Mening buyurtmalarim",
-            reply_markup=menu_kb
-        )
-    else:
-        await callback.answer("❌ Buyurtma yaratishda xatolik yuz berdi")
+        if order_id:
+            from buttons import reply_toUser
+            await callback.bot.send_message(
+                Admin_ID,
+                f"🆕 Yangi buyurtma!\n\n"
+                f"👤 User ID: {user_id}\n"
+                f"📦 Buyurtma ID: {order_id}\n"
+                f"💰 Summa: {final_price} so'm\n"
+                f"📍 Manzil: {delivery_address}\n"
+                f"💳 To'lov: Karta",
+                reply_markup=reply_toUser(user_id)
+            )
+
+            await state.clear()
+            await callback.message.answer(
+                "✅ Buyurtma yuborildi!\n\n"
+                "📋 Buyurtmalaringizni ko'rish uchun:\n"
+                "🛒 Buyurtma → 📦 Mening buyurtmalarim",
+                reply_markup=menu_kb
+            )
+        else:
+            logger.error(f"Failed to create order for user {user_id}")
+            await callback.answer("❌ Buyurtma yaratishda xatolik yuz berdi")
+    except Exception as e:
+        logger.error(f"Error creating single book order for user {user_id}: {e}")
+        await callback.answer("❌ Buyurtma yaratishda texnik xatolik yuz berdi")
 
     await callback.answer()
 
