@@ -22,13 +22,13 @@ async def main():
 
     bot_token = env.str("TOKEN") if env.str("TOKEN") != "None" else "7342211516:AAFG6yUhbxLh0StthZhp0XvnAGSxsP-4zlY"
     bot = Bot(token=bot_token)
-    print(f"🤖 Bot started with token: {bot_token[:20]}...")
+    print(f"Bot started with token: {bot_token[:20]}...")
 
     dp.include_router(usercall_router)
     dp.include_router(user_router)
     dp.include_router(admin_router)
 
-    print("🚀 Starting bot polling...")
+    print("Starting bot polling...")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
