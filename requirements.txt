@@ -10,6 +10,7 @@ charset-normalizer==3.4.3
 environ==1.0
 environs==14.3.0
 frozenlist==1.7.0
+greenlet==3.2.4
 idna==3.10
 magic-filter==1.0.12
 marshmallow==4.0.1
@@ -22,6 +23,7 @@ pydantic==2.11.9
 pydantic_core==2.33.2
 python-dotenv==1.1.1
 reportlab==4.4.4
+SQLAlchemy==2.0.44
 typing-inspection==0.4.1
 typing_extensions==4.15.0
 yarl==1.20.1

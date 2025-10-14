@@ -1,6 +1,12 @@
 from .connection import get_connect
 import os
 import uuid
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text, Boolean, delete
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+import asyncio
 
 try:
     from reportlab.lib.pagesizes import letter, A4
@@ -19,6 +25,33 @@ try:
 except ImportError:
     PDFKIT_AVAILABLE = False
     print("pdfkit not installed. Alternative PDF generation not available.")
+
+# SQLAlchemy setup for async operations
+Base = declarative_base()
+
+class OrderItem(Base):
+    __tablename__ = 'order_items'
+    id = Column(Integer, primary_key=True)
+    order_id = Column(Integer, ForeignKey('orders.id'))
+    book_id = Column(Integer, ForeignKey('books.id'))
+    quantity = Column(Integer)
+    price = Column(Float)
+
+class Cart(Base):
+    __tablename__ = 'cart'
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer)
+    book_id = Column(Integer, ForeignKey('books.id'))
+    quantity = Column(Integer)
+    price = Column(Float)
+    created_at = Column(DateTime, default=func.now())
+
+# Async session maker
+async_session_maker = async_sessionmaker(
+    create_async_engine("sqlite+aiosqlite:///data/app.db"),
+    class_=AsyncSession,
+    expire_on_commit=False
+)
 
 def add_book(title, description, author, price, genre, quantity, image_path=None):
     """Add a new book to the database"""
@@ -589,25 +622,44 @@ def remove_from_cart(cart_item_id):
         print(f"Error removing from cart: {e}")
         return False
 
-def clear_user_cart(user_id):
-    """Clear all items from user's cart"""
-    try:
-        conn = get_connect()
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM cart WHERE user_id = ?", (user_id,))
-        conn.commit()
-        conn.close()
-        return True
-    except Exception as e:
-        print(f"Error clearing cart: {e}")
-        return False
 
-def create_order(user_id, delivery_address, payment_type, total_amount, book_id=None, quantity=None, price=None):
+async def create_order(user_id, delivery_address, payment_type, total_amount, book_id=None, quantity=None, price=None):
     """Create new order from cart or single book"""
     try:
+        # Validate inputs
+        if not user_id or not delivery_address or not payment_type or total_amount <= 0:
+            print(f"Invalid order parameters: user_id={user_id}, delivery_address='{delivery_address}', payment_type='{payment_type}', total_amount={total_amount}")
+            return None
+
+        if book_id and (not quantity or quantity <= 0 or not price or price <= 0):
+            print(f"Invalid book order parameters: book_id={book_id}, quantity={quantity}, price={price}")
+            return None
+
+        # Check if user exists and is active using sync connection
         conn = get_connect()
         cursor = conn.cursor()
+        cursor.execute("SELECT id, is_active FROM users WHERE chat_id = ?", (user_id,))
+        user = cursor.fetchone()
+        cursor.close()
+        conn.close()
 
+        if not user:
+            print(f"User {user_id} not found")
+            return None
+
+        if not user[1]:  # is_active check
+            print(f"User {user_id} is not active")
+            return None
+
+        # Validate delivery address length
+        delivery_address = delivery_address.strip()
+        if len(delivery_address) < 5:
+            print(f"Delivery address too short: '{delivery_address}'")
+            return None
+
+        # Create order using sync connection
+        conn = get_connect()
+        cursor = conn.cursor()
         cursor.execute("""
             INSERT INTO orders (user_id, delivery_address, payment_type, total_amount, status)
             VALUES (?, ?, ?, ?, 'pending')
@@ -616,24 +668,106 @@ def create_order(user_id, delivery_address, payment_type, total_amount, book_id=
         order_id = cursor.lastrowid
 
         if book_id and quantity and price:
+            # Validate book exists and has sufficient quantity
+            cursor.execute("SELECT id, quantity, price FROM books WHERE id = ?", (book_id,))
+            book = cursor.fetchone()
+            if not book:
+                print(f"Book {book_id} not found")
+                conn.rollback()
+                conn.close()
+                return None
+
+            if book[1] < quantity:
+                print(f"Insufficient quantity for book {book_id}: requested {quantity}, available {book[1]}")
+                conn.rollback()
+                conn.close()
+                return None
+
             cursor.execute("""
                 INSERT INTO order_items (order_id, book_id, quantity, price)
                 VALUES (?, ?, ?, ?)
             """, (order_id, book_id, quantity, price))
-        else:
+
+            # Update book quantity in inventory for single book orders
             cursor.execute("""
-                INSERT INTO order_items (order_id, book_id, quantity, price)
-                SELECT ?, book_id, quantity, price FROM cart WHERE user_id = ?
-            """, (order_id, user_id))
+                UPDATE books SET quantity = quantity - ? WHERE id = ?
+            """, (quantity, book_id))
+        else:
+            # Get cart items using sync connection for validation
+            cursor.execute("""
+                SELECT c.book_id, c.quantity, c.price, b.quantity as available_quantity
+                FROM cart c
+                JOIN books b ON c.book_id = b.id
+                WHERE c.user_id = ?
+            """, (user_id,))
 
-            cursor.execute("DELETE FROM cart WHERE user_id = ?", (user_id,))
+            cart_items = cursor.fetchall()
+            if not cart_items:
+                print(f"No items in cart for user {user_id}")
+                conn.rollback()
+                conn.close()
+                return None
 
-        conn.commit()
-        conn.close()
+            # Validate all cart items have sufficient quantity
+            for item in cart_items:
+                book_id_item, quantity_item, price_item, available_qty = item
+                if available_qty < quantity_item:
+                    print(f"Insufficient quantity for book {book_id_item}: requested {quantity_item}, available {available_qty}")
+                    conn.rollback()
+                    conn.close()
+                    return None
+
+            # Insert cart items into order and update book quantities using async
+            cart_data = []
+            for item in cart_items:
+                book_id_item, quantity_item, price_item, _ = item
+                cart_data.append({
+                    'book_id': book_id_item,
+                    'quantity': quantity_item,
+                    'price': price_item
+                })
+
+                # Update book quantity in inventory
+                cursor.execute("""
+                    UPDATE books SET quantity = quantity - ? WHERE id = ?
+                """, (quantity_item, book_id_item))
+
+            # Close sync connection
+            conn.commit()
+            conn.close()
+
+            # Use async operations for order items and cart clearing
+            await add_order_items(order_id, cart_data)
+            await clear_user_cart(user_id)
+
         return order_id
     except Exception as e:
         print(f"Error creating order: {e}")
+        if 'conn' in locals():
+            conn.rollback()
+            conn.close()
         return None
+
+async def add_order_items(order_id: int, cart_items: list):
+    """Add items to order_items table"""
+    async with async_session_maker() as session:
+        for item in cart_items:
+            order_item = OrderItem(
+                order_id=order_id,
+                book_id=item['book_id'],
+                quantity=item['quantity'],
+                price=item['price']
+            )
+            session.add(order_item)
+        await session.commit()
+
+async def clear_user_cart(user_id: int):
+    """Clear user's cart after order"""
+    async with async_session_maker() as session:
+        await session.execute(
+            delete(Cart).where(Cart.user_id == user_id)
+        )
+        await session.commit()
 
 def get_user_orders(user_id, page=1, per_page=5):
     """Get user's orders with pagination"""

@@ -150,7 +150,7 @@ async def get_phone(message: Message, state: FSMContext):
         await state.clear()
     else:
         await message.answer(
-            "❌ Telefon raqami noto'g'ri. Iltimos, +998901234567 formatida yuboring yoki 'Telefon raqamni yuborish' tugmasidan foydalaning."
+            "❌ Telefon raqami noto'g'ri. Iltimos, +998901234567  formatida yuboring yoki 'Telefon raqamni yuborish' tugmasidan foydalaning."
         )
 
 
@@ -265,95 +265,132 @@ async def order_handler(message: Message, **kwargs):
 @check_registration
 async def view_cart(message: Message, **kwargs):
     """View user's cart"""
-    user_id = message.from_user.id
-    cart_items = get_user_cart(user_id)
+    try:
+        user_id = message.from_user.id
+        cart_items = get_user_cart(user_id)
 
-    if not cart_items:
+        if not cart_items:
+            await message.answer(
+                "🛒 Savatcha bo'sh\n\n"
+                "📚 Kitob qidirib, savatchaga qo'shing!",
+                reply_markup=after_menukb
+            )
+            return
+
+        response = "🛒 Sizning savatchangiz:\n\n"
+        total_amount = 0
+
+        for i, item in enumerate(cart_items, 1):
+            quantity = item.get('quantity', 0)
+            price = item.get('price', 0)
+            title = item.get('title', 'Noma\'lum kitob')
+            author = item.get('author', 'Noma\'lum muallif')
+
+            if quantity <= 0 or price <= 0:
+                continue
+
+            item_total = quantity * price
+            total_amount += item_total
+
+            response += f"{i}. 📖 {title}\n"
+            response += f"   👨‍🏫 {author}\n"
+            response += f"   💰 {price} so'm × {quantity} = {item_total} so'm\n\n"
+
+        if total_amount <= 0:
+            await message.answer(
+                "❌ Savatchada xatolik bor. Savatchani tozalab, qaytadan kitob qo'shing.",
+                reply_markup=after_menukb
+            )
+            return
+
+        response += f"💰 Jami: {total_amount} so'm\n\n"
+        response += "📋 Nima qilmoqchisiz?"
+
+        cart_action_kb = ReplyKeyboardMarkup(
+            keyboard=[
+                [KeyboardButton(text="✅ Buyurtma berish"), KeyboardButton(text="🗑️ Savatchani tozalash")],
+                [KeyboardButton(text="⬅️ Orqaga")]
+            ],
+            resize_keyboard=True
+        )
+
+        await message.answer(response, reply_markup=cart_action_kb)
+    except Exception as e:
+        logger.error(f"Error viewing cart for user {message.from_user.id}: {e}")
         await message.answer(
-            "🛒 Savatcha bo'sh\n\n"
-            "Kitob qidirib, savatchaga qo'shing!",
+            "❌ Savatchani ko'rishda xatolik yuz berdi. Qaytadan urinib ko'ring.",
             reply_markup=after_menukb
         )
-        return
-
-    response = "🛒 Sizning savatchangiz:\n\n"
-    total_amount = 0
-
-    for i, item in enumerate(cart_items, 1):
-        item_total = item['quantity'] * item['price']
-        total_amount += item_total
-
-        response += f"{i}. 📖 {item['title']}\n"
-        response += f"   👨‍🏫 {item['author']}\n"
-        response += f"   💰 {item['price']} so'm × {item['quantity']} = {item_total} so'm\n\n"
-
-    response += f"💰 Jami: {total_amount} so'm\n\n"
-    response += "📋 Nima qilmoqchisiz?"
-
-    cart_action_kb = ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text="✅ Buyurtma berish"), KeyboardButton(text="🗑️ Savatchani tozalash")],
-            [KeyboardButton(text="⬅️ Orqaga")]
-        ],
-        resize_keyboard=True
-    )
-
-    await message.answer(response, reply_markup=cart_action_kb)
 
 @user_router.message(F.text == "📦 Mening buyurtmalarim")
 @check_registration
 async def view_orders(message: Message, **kwargs):
     """View user's order history"""
-    user_id = message.from_user.id
-    orders_data = get_user_orders(user_id, page=1, per_page=5)
+    try:
+        user_id = message.from_user.id
+        orders_data = get_user_orders(user_id, page=1, per_page=5)
 
-    if not orders_data['orders']:
+        if not orders_data['orders']:
+            await message.answer(
+                "📦 Sizda buyurtmalar yo'q\n\n"
+                "📚 Birinchi buyurtmani bering!",
+                reply_markup=after_menukb
+            )
+            return
+
+        response = "📦 Sizning buyurtmalaringiz:\n\n"
+
+        for i, order in enumerate(orders_data['orders'], 1):
+            order_id = order.get('id')
+            total_amount = order.get('total_amount', 0)
+            status = order.get('status', 'unknown')
+            created_at = order.get('created_at', '')
+
+            if not order_id:
+                continue
+
+            status_emoji = {
+                'pending': '⏳',
+                'approved': '✅',
+                'shipped': '📦',
+                'delivered': '🚚',
+                'cancelled': '❌'
+            }
+
+            emoji = status_emoji.get(status, '❓')
+            response += f"{i}. {emoji} Buyurtma #{order_id}\n"
+            response += f"   💰 {total_amount} so'm\n"
+            response += f"   📅 {created_at[:10] if created_at else 'Noma\'lum'}\n"
+            response += f"   📊 Holat: {status}\n\n"
+
+        response += f"📄 Sahifa {orders_data['current_page']}/{orders_data['total_pages']}"
+
+        if orders_data['total_pages'] > 1:
+            from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+
+            nav_buttons = []
+            if orders_data['current_page'] > 1:
+                nav_buttons.append(InlineKeyboardButton(
+                    text="⬅️ Oldingi",
+                    callback_data=f"orders_page_{orders_data['current_page'] - 1}"
+                ))
+            if orders_data['current_page'] < orders_data['total_pages']:
+                nav_buttons.append(InlineKeyboardButton(
+                    text="Keyingi ➡️",
+                    callback_data=f"orders_page_{orders_data['current_page'] + 1}"
+                ))
+
+            keyboard = InlineKeyboardMarkup(inline_keyboard=[nav_buttons] if nav_buttons else [])
+
+            await message.answer(response, reply_markup=keyboard)
+        else:
+            await message.answer(response, reply_markup=after_menukb)
+    except Exception as e:
+        logger.error(f"Error viewing orders for user {message.from_user.id}: {e}")
         await message.answer(
-            "📦 Sizda buyurtmalar yo'q\n\n"
-            "Birinchi buyurtmani bering!",
+            "❌ Buyurtmalarni ko'rishda xatolik yuz berdi. Qaytadan urinib ko'ring.",
             reply_markup=after_menukb
         )
-        return
-
-    response = "📦 Sizning buyurtmalaringiz:\n\n"
-
-    for i, order in enumerate(orders_data['orders'], 1):
-        status_emoji = {
-            'pending': '⏳',
-            'approved': '✅',
-            'shipped': '📦',
-            'delivered': '🚚',
-            'cancelled': '❌'
-        }
-
-        emoji = status_emoji.get(order['status'], '❓')
-        response += f"{i}. {emoji} Buyurtma #{order['id']}\n"
-        response += f"   💰 {order['total_amount']} so'm\n"
-        response += f"   📅 {order['created_at'][:10]}\n"
-        response += f"   📊 Holat: {order['status']}\n\n"
-
-    response += f"📄 Sahifa {orders_data['current_page']}/{orders_data['total_pages']}"
-
-    if orders_data['total_pages'] > 1:
-        from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-
-        nav_buttons = []
-        if orders_data['current_page'] > 1:
-            nav_buttons.append(InlineKeyboardButton(
-                text="⬅️ Oldingi",
-                callback_data=f"orders_page_{orders_data['current_page'] - 1}"
-            ))
-        if orders_data['current_page'] < orders_data['total_pages']:
-            nav_buttons.append(InlineKeyboardButton(
-                text="Keyingi ➡️",
-                callback_data=f"orders_page_{orders_data['current_page'] + 1}"
-            ))
-
-        keyboard = InlineKeyboardMarkup(inline_keyboard=[nav_buttons] if nav_buttons else [])
-
-        await message.answer(response, reply_markup=keyboard)
-    else:
-        await message.answer(response, reply_markup=after_menukb)
 
 @user_router.message(F.text == "✅ Buyurtma berish")
 @check_registration
@@ -366,14 +403,13 @@ async def process_cart_order(message: Message, state: FSMContext):
         await message.answer("❌ Savatcha bo'sh")
         return
 
-    # Calculate total amount with validation
     total_amount = 0
     for item in cart_items:
         if item.get('quantity', 0) > 0 and item.get('price', 0) > 0:
             total_amount += item['quantity'] * item['price']
 
     if total_amount <= 0:
-        await message.answer("❌ Savatcha summasi noto'g'ri") 
+        await message.answer("❌ Savatcha summasi noto'g'ri")
         return
 
     await state.set_state(OrderProcess.entering_delivery_info)
@@ -381,7 +417,7 @@ async def process_cart_order(message: Message, state: FSMContext):
 
     await message.answer(
         "📍 Yetkazish manzilini kiriting:\n\n"
-        "Misol: Toshkent shahri, Yunusobod tumani, Abdulla Qodiriy ko'chasi 12-uy",
+        "💡 Masalan: Toshkent shahri, Yunusobod",
         reply_markup=ReplyKeyboardMarkup(
             keyboard=[
                 [KeyboardButton(text="⬅️ Orqaga")],
@@ -397,38 +433,90 @@ async def get_delivery_info_for_cart(message: Message, state: FSMContext, **kwar
     """Get delivery address for cart order and proceed to payment"""
     delivery_address = message.text.strip()
 
-    if not delivery_address or len(delivery_address) < 10:
-        await message.answer("❌ Yetkazish manzili to'liq emas. Iltimos, batafsil yozing (kamida 10 ta belgi):")
+    if not delivery_address or len(delivery_address) < 5:
+        await message.answer("❌ Yetkazish manzilini kiriting (masalan: Toshkent shahri, Yunusobod):")
         return
 
     await state.update_data(delivery_address=delivery_address)
 
-    payment_kb = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="💳 Karta orqali to'lash", callback_data="payment_card_cart")],
-            [InlineKeyboardButton(text="⬅️ Orqaga", callback_data="back_to_delivery")]
-        ]
-    )
+    data = await state.get_data()
+    total_amount = data.get('total_amount', 0)
+    cart_items = data.get('cart_items', [])  # Savat mahsulotlarini olish
+    user_id = message.from_user.id
 
-    await state.set_state(OrderProcess.selecting_payment)
-    await message.answer(
-        "💳 To'lov turini tanlang:\n\n"
-        "⚠️ Faqat karta orqali to'lash mavjud",
-        reply_markup=payment_kb
-    )
+    if total_amount <= 0:
+        await message.answer("❌ Buyurtma summasi noto'g'ri")
+        await state.clear()
+        return
 
+    if not cart_items:
+        await message.answer("❌ Savatingiz bo'sh")
+        await state.clear()
+        return
+
+    try:
+        from database.admin_query import create_order, add_order_items, clear_user_cart
+        
+        # 1. Buyurtma yaratish
+        order_id = await create_order(
+            user_id=user_id,
+            delivery_address=delivery_address,
+            payment_type="card",
+            total_amount=total_amount
+        )
+
+        if order_id:
+            # 2. Buyurtma mahsulotlarini qo'shish
+            await add_order_items(order_id, cart_items)
+            
+            # 3. Savatni tozalash (database)
+            await clear_user_cart(user_id)
+            
+            # Buyurtma tafsilotlarini ko'rsatish
+            items_text = "\n".join([
+                f"  • {item['name']} x{item['quantity']} - {item['price'] * item['quantity']} so'm"
+                for item in cart_items
+            ])
+            
+            await message.answer(
+                "✅ Buyurtma muvaffaqiyatli yaratildi!\n\n"
+                f"📦 Buyurtma raqami: #{order_id}\n"
+                f"💰 Summa: {total_amount} so'm\n"
+                f"📍 Manzil: {delivery_address}\n\n"
+                f"📋 Mahsulotlar:\n{items_text}\n\n"
+                "📦 Buyurtmalaringizni ko'rish uchun:\n"
+                "🛒 Buyurtma → 📦 Mening buyurtmalarim",
+                reply_markup=menu_kb
+            )
+            await state.clear()
+        else:
+            await message.answer("❌ Buyurtma yaratishda xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.")
+    except Exception as e:
+        logger.error(f"Error creating cart order: {e}")
+        await message.answer("❌ Texnik xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.")
 @user_router.message(F.text == "🗑️ Savatchani tozalash")
 @check_registration
 async def clear_cart(message: Message, **kwargs):
     """Clear user's cart"""
-    user_id = message.from_user.id
+    try:
+        user_id = message.from_user.id
 
-    clear_user_cart(user_id)
-
-    await message.answer(
-        "🗑️ Savatcha tozalandi",
-        reply_markup=after_menukb
-    )
+        if clear_user_cart(user_id):
+            await message.answer(
+                "🗑️ Savatcha tozalandi",
+                reply_markup=after_menukb
+            )
+        else:
+            await message.answer(
+                "❌ Savatchani tozalashda xatolik yuz berdi",
+                reply_markup=after_menukb
+            )
+    except Exception as e:
+        logger.error(f"Error clearing cart for user {message.from_user.id}: {e}")
+        await message.answer(
+            "❌ Savatchani tozalashda xatolik yuz berdi. Qaytadan urinib ko'ring.",
+            reply_markup=after_menukb
+        )
 
 
 @user_router.message(F.text == "📄 Ma’lumotlarim")
@@ -815,12 +903,32 @@ async def process_search_query(message: Message, state: FSMContext):
     pagination_data = get_books_paginated(page=1, per_page=10, search_query=search_query, search_type=search_type)
 
     if not pagination_data['books']:
-        await message.answer(
-            f"❌ <b>{search_type.title()} bo'yicha</b> \"{search_query}\" <b>qidiruvi bo'yicha hech narsa topilmadi</b>\n\n"
-            "Boshqa so'z bilan qidiring yoki qidirish turini o'zgartiring.",
-            parse_mode="HTML",
-            reply_markup=searchClickkb
-        )
+        # Show available books for user to search
+        all_books = get_books_paginated(page=1, per_page=20)
+        if all_books['books']:
+            book_list = "📚 <b>Mavjud kitoblar:</b>\n\n"
+            for i, book in enumerate(all_books['books'][:10], 1):
+                book_list += f"{i}. 📖 {book['title']} - {book['author']}\n"
+
+            await message.answer(
+                f"❌ <b>{search_type.title()} bo'yicha</b> \"{search_query}\" <b>qidiruvi bo'yicha hech narsa topilmadi</b>\n\n"
+                f"{book_list}\n"
+                "💡 <b>Maslahatlar:</b>\n"
+                "• Kitob nomini to'liq yozing\n"
+                "• Muallif yoki janr bo'yicha qidirib ko'ring\n"
+                "• Imlo xatolarini tekshiring\n\n"
+                "🔍 Boshqa so'z bilan qidiring:",
+                parse_mode="HTML",
+                reply_markup=searchClickkb
+            )
+        else:
+            await message.answer(
+                f"❌ <b>{search_type.title()} bo'yicha</b> \"{search_query}\" <b>qidiruvi bo'yicha hech narsa topilmadi</b>\n\n"
+                "📚 <b>Kitoblar bazasi bo'sh</b>\n\n"
+                "💡 Admin bilan bog'laning yoki keyinroq qayta urinib ko'ring.",
+                parse_mode="HTML",
+                reply_markup=searchClickkb
+            )
         await state.clear()
         return
 
@@ -1111,32 +1219,32 @@ async def decrease_quantity(callback: CallbackQuery, state: FSMContext):
 
         await state.update_data(order_quantity=new_quantity)
 
-        
-        new_caption = format_book_display_message(book, new_quantity, total_price)
-
+        # Update the message with new quantity and price
         try:
-            
             if book.get('image_path') and book['image_path'] != 'None':
-                current_caption = getattr(callback.message, 'caption', "") or ""
-                if current_caption != new_caption:
-                    await callback.message.edit_caption(new_caption, reply_markup=order_ikb, parse_mode="HTML")
+                photo_path = FSInputFile(book['image_path'])
+                new_caption = format_book_display_message(book, new_quantity, total_price)
+                await callback.message.edit_caption(caption=new_caption, reply_markup=order_ikb, parse_mode="HTML")
             else:
-               
-                current_text = getattr(callback.message, 'text', "") or ""
-                if current_text != new_caption:
-                    await callback.message.edit_text(new_caption, reply_markup=order_ikb, parse_mode="HTML")
+                new_text = format_book_display_message(book, new_quantity, total_price)
+                await callback.message.edit_text(text=new_text, reply_markup=order_ikb, parse_mode="HTML")
+    
+            await callback.answer(f"✅ Miqdor: {new_quantity}, Jami: {total_price} so'm")
         except Exception as e:
-            
+            logger.error(f"Failed to update quantity message: {e}")
+            # Fallback: send new message if editing fails
             try:
                 if book.get('image_path') and book['image_path'] != 'None':
                     photo_path = FSInputFile(book['image_path'])
+                    new_caption = format_book_display_message(book, new_quantity, total_price)
                     await callback.message.answer_photo(photo_path, caption=new_caption, reply_markup=order_ikb, parse_mode="HTML")
                 else:
-                    await callback.message.answer(new_caption, reply_markup=order_ikb, parse_mode="HTML")
+                    new_text = format_book_display_message(book, new_quantity, total_price)
+                    await callback.message.answer(new_text, reply_markup=order_ikb, parse_mode="HTML")
+                await callback.answer(f"✅ Miqdor: {new_quantity}, Jami: {total_price} so'm")
             except Exception as e2:
                 logger.error(f"Failed to send fallback message: {e2}")
-
-        await callback.answer(f"Miqdor: {new_quantity}")
+                await callback.answer(f"❌ Xatolik: {new_quantity}")
     else:
         await callback.answer("❌ Minimal miqdor: 1")
 
@@ -1162,32 +1270,32 @@ async def increase_quantity(callback: CallbackQuery, state: FSMContext):
 
     await state.update_data(order_quantity=new_quantity)
 
-    
-    new_caption = format_book_display_message(book, new_quantity, total_price)
-
+    # Update the message with new quantity and price
     try:
-       
         if book.get('image_path') and book['image_path'] != 'None':
-            current_caption = getattr(callback.message, 'caption', "") or ""
-            if current_caption != new_caption:
-                await callback.message.edit_caption(new_caption, reply_markup=order_ikb, parse_mode="HTML")
+            photo_path = FSInputFile(book['image_path'])
+            new_caption = format_book_display_message(book, new_quantity, total_price)
+            await callback.message.edit_caption(caption=new_caption, reply_markup=order_ikb, parse_mode="HTML")
         else:
-           
-            current_text = getattr(callback.message, 'text', "") or ""
-            if current_text != new_caption:
-                await callback.message.edit_text(new_caption, reply_markup=order_ikb, parse_mode="HTML")
+            new_text = format_book_display_message(book, new_quantity, total_price)
+            await callback.message.edit_text(text=new_text, reply_markup=order_ikb, parse_mode="HTML")
+
+        await callback.answer(f"✅ Miqdor: {new_quantity}, Jami: {total_price} so'm")
     except Exception as e:
-        #
+        logger.error(f"Failed to update quantity message: {e}")
+        # Fallback: send new message if editing fails
         try:
             if book.get('image_path') and book['image_path'] != 'None':
                 photo_path = FSInputFile(book['image_path'])
+                new_caption = format_book_display_message(book, new_quantity, total_price)
                 await callback.message.answer_photo(photo_path, caption=new_caption, reply_markup=order_ikb, parse_mode="HTML")
             else:
-                await callback.message.answer(new_caption, reply_markup=order_ikb, parse_mode="HTML")
+                new_text = format_book_display_message(book, new_quantity, total_price)
+                await callback.message.answer(new_text, reply_markup=order_ikb, parse_mode="HTML")
+            await callback.answer(f"✅ Miqdor: {new_quantity}, Jami: {total_price} so'm")
         except Exception as e2:
             logger.error(f"Failed to send fallback message: {e2}")
-
-    await callback.answer(f"Miqdor: {new_quantity}")
+            await callback.answer(f"❌ Xatolik: {new_quantity}")
 
 @check_registration_callback
 @user_router.callback_query(F.data == "quantity_display")
@@ -1208,22 +1316,37 @@ async def show_quantity_info(callback: CallbackQuery, state: FSMContext):
 @user_router.callback_query(F.data == "Add_toCard")
 async def add_to_cart_handler(callback: CallbackQuery, state: FSMContext):
     """Add book to cart"""
-    data = await state.get_data()
-    book = data.get('selected_book')
-    quantity = data.get('order_quantity', 1)
+    try:
+        data = await state.get_data()
+        book = data.get('selected_book')
+        quantity = data.get('order_quantity', 1)
 
-    if not book:
-        await callback.answer("❌ Kitob topilmadi")
-        return
+        if not book:
+            await callback.answer("❌ Kitob topilmadi")
+            return
 
-    user_id = callback.from_user.id
-    total_price = book['price'] * quantity
+        # Validate book data
+        book_id = book.get('id')
+        price = book.get('price', 0)
 
-    if add_to_cart(user_id, book['id'], quantity, book['price']):
-        await callback.answer(f"✅ {quantity} ta kitob savatchaga qo'shildi!")
-        await state.clear()
-    else:
-        await callback.answer("❌ Savatchaga qo'shishda xatolik yuz berdi")
+        if not book_id or price <= 0:
+            await callback.answer("❌ Kitob ma'lumotlari noto'g'ri")
+            return
+
+        if quantity <= 0:
+            await callback.answer("❌ Miqdor noto'g'ri")
+            return
+
+        user_id = callback.from_user.id
+
+        if add_to_cart(user_id, book_id, quantity, price):
+            await callback.answer(f"✅ {quantity} ta kitob savatchaga qo'shildi!")
+            await state.clear()
+        else:
+            await callback.answer("❌ Savatchaga qo'shishda xatolik yuz berdi")
+    except Exception as e:
+        logger.error(f"Error adding to cart for user {callback.from_user.id}: {e}")
+        await callback.answer("❌ Savatchaga qo'shishda texnik xatolik yuz berdi")
 
 @check_registration_callback
 @user_router.callback_query(F.data == "sendItem")
@@ -1252,13 +1375,13 @@ async def send_order(callback: CallbackQuery, state: FSMContext):
         order_book_id=book['id'],
         order_quantity=quantity,
         order_price=total_price,
-        selected_book=book  
+        selected_book=book
     )
 
     await state.set_state(OrderProcess.entering_delivery_info)
     await callback.message.answer(
         "📍 Yetkazish manzilini kiriting:\n\n"
-        "Misol: Toshkent shahri, Yunusobod tumani, Abdulla Qodiriy ko'chasi 12-uy",
+        "💡 Masalan: Toshkent shahri, Yunusobod",
         reply_markup=ReplyKeyboardMarkup(
             keyboard=[
                 [KeyboardButton(text="⬅️ Orqaga")],
@@ -1304,119 +1427,37 @@ async def cancel_order_process(message: Message, state: FSMContext, **kwargs):
 
 @user_router.message(OrderProcess.entering_delivery_info, F.text.not_in(["⬅️ Orqaga", "❌ Bekor qilish"]))
 async def get_delivery_info(message: Message, state: FSMContext, **kwargs):
-    """Get delivery address and proceed to payment"""
+    """Get delivery address and create order directly"""
     delivery_address = message.text.strip()
 
-    if not delivery_address or len(delivery_address) < 10:
-        await message.answer("❌ Yetkazish manzili to'liq emas. Iltimos, batafsil yozing (kamida 10 ta belgi):")
+    if not delivery_address or len(delivery_address) < 5:
+        await message.answer("❌ Yetkazish manzilini kiriting (masalan: Toshkent shahri, Yunusobod):")
         return
 
-    await state.update_data(delivery_address=delivery_address)
-
-    payment_kb = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text="💳 Karta orqali to'lash", callback_data="payment_card")],
-            [InlineKeyboardButton(text="⬅️ Orqaga", callback_data="back_to_delivery")]
-        ]
-    )
-
-    await state.set_state(OrderProcess.selecting_payment)
-    await message.answer(
-        "💳 To'lov turini tanlang:\n\n"
-        "⚠️ Faqat karta orqali to'lash mavjud",
-        reply_markup=payment_kb
-    )
-
-@check_registration_callback
-@user_router.callback_query(F.data == "payment_card_cart")
-async def confirm_cart_payment(callback: CallbackQuery, state: FSMContext):
-    """Confirm card payment for cart order and create order"""
     data = await state.get_data()
-    delivery_address = data.get('delivery_address')
-    total_amount = data.get('total_amount', 0)
-
-    if not all([delivery_address, total_amount]):
-        await callback.answer("❌ Buyurtma ma'lumotlari to'liq emas")
-        return
-
-    if total_amount <= 0:
-        await callback.answer("❌ Buyurtma summasi noto'g'ri")
-        return
-
-    user_id = callback.from_user.id
-
-   
-    try:
-        order_id = create_order(
-            user_id=user_id,
-            delivery_address=delivery_address,
-            payment_type="card",
-            total_amount=total_amount
-        )
-
-        if order_id:
-            from buttons import reply_toUser
-            await callback.bot.send_message(
-                Admin_ID,
-                f"🆕 Yangi buyurtma (savatchadan)!\n\n"
-                f"👤 User ID: {user_id}\n"
-                f"📦 Buyurtma ID: {order_id}\n"
-                f"💰 Summa: {total_amount} so'm\n"
-                f"📍 Manzil: {delivery_address}\n"
-                f"💳 To'lov: Karta",
-                reply_markup=reply_toUser(user_id)
-            )
-
-            await state.clear()
-            await callback.message.answer(
-                "✅ Buyurtma yuborildi!\n\n"
-                "📋 Buyurtmalaringizni ko'rish uchun:\n"
-                "🛒 Buyurtma → 📦 Mening buyurtmalarim",
-                reply_markup=menu_kb
-            )
-        else:
-            logger.error(f"Failed to create order for user {user_id}")
-            await callback.answer("❌ Buyurtma yaratishda xatolik yuz berdi")
-    except Exception as e:
-        logger.error(f"Error creating cart order for user {user_id}: {e}")
-        await callback.answer("❌ Buyurtma yaratishda texnik xatolik yuz berdi")
-
-    await callback.answer()
-
-@check_registration_callback
-@user_router.callback_query(F.data == "payment_card")
-async def confirm_card_payment(callback: CallbackQuery, state: FSMContext):
-    """Confirm card payment and create order"""
-    data = await state.get_data()
-    delivery_address = data.get('delivery_address')
     book_id = data.get('order_book_id')
     quantity = data.get('order_quantity', 1)
     price = data.get('order_price', 0)
     selected_book = data.get('selected_book')
 
-
-    if not delivery_address:
-        await callback.answer("❌ Yetkazish manzili ko'rsatilmagan")
-        return
-
     if not book_id and not selected_book:
-        await callback.answer("❌ Kitob ma'lumotlari topilmadi")
+        await message.answer("❌ Kitob ma'lumotlari topilmadi")
+        await state.clear()
         return
-
 
     final_book_id = book_id or (selected_book.get('id') if selected_book else None)
     final_quantity = quantity or 1
     final_price = price or (selected_book.get('price', 0) * final_quantity if selected_book else 0)
 
     if not final_book_id or final_price <= 0:
-        debug_info = f"Debug: delivery_address={bool(delivery_address)}, book_id={book_id}, selected_book={bool(selected_book)}, price={final_price}"
-        logger.warning(f"Order validation failed for user {callback.from_user.id}: {debug_info}")
-        await callback.answer("❌ Buyurtma ma'lumotlari to'liq emas")
+        await message.answer("❌ Buyurtma ma'lumotlari noto'g'ri")
+        await state.clear()
         return
 
-    user_id = callback.from_user.id
+    user_id = message.from_user.id
 
     try:
+        from database.admin_query import create_order
         order_id = create_order(
             user_id=user_id,
             delivery_address=delivery_address,
@@ -1428,47 +1469,20 @@ async def confirm_card_payment(callback: CallbackQuery, state: FSMContext):
         )
 
         if order_id:
-            from buttons import reply_toUser
-            await callback.bot.send_message(
-                Admin_ID,
-                f"🆕 Yangi buyurtma!\n\n"
-                f"👤 User ID: {user_id}\n"
-                f"📦 Buyurtma ID: {order_id}\n"
+            await message.answer(
+                "✅ Buyurtma muvaffaqiyatli yaratildi!\n\n"
+                f"📦 Buyurtma raqami: #{order_id}\n"
                 f"💰 Summa: {final_price} so'm\n"
-                f"📍 Manzil: {delivery_address}\n"
-                f"💳 To'lov: Karta",
-                reply_markup=reply_toUser(user_id)
-            )
-
-            await state.clear()
-            await callback.message.answer(
-                "✅ Buyurtma yuborildi!\n\n"
+                f"📍 Manzil: {delivery_address}\n\n"
                 "📋 Buyurtmalaringizni ko'rish uchun:\n"
                 "🛒 Buyurtma → 📦 Mening buyurtmalarim",
                 reply_markup=menu_kb
             )
+            await state.clear()
         else:
-            logger.error(f"Failed to create order for user {user_id}")
-            await callback.answer("❌ Buyurtma yaratishda xatolik yuz berdi")
+            await message.answer("❌ Buyurtma yaratishda xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.")
     except Exception as e:
-        logger.error(f"Error creating single book order for user {user_id}: {e}")
-        await callback.answer("❌ Buyurtma yaratishda texnik xatolik yuz berdi")
+        logger.error(f"Error creating single book order: {e}")
+        await message.answer("❌ Texnik xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.")
 
-    await callback.answer()
 
-@check_registration_callback
-@user_router.callback_query(F.data == "back_to_delivery")
-async def back_to_delivery_info(callback: CallbackQuery, state: FSMContext):
-    """Go back to delivery info input"""
-    await state.set_state(OrderProcess.entering_delivery_info)
-    await callback.message.answer(
-        "📍 Yetkazish manzilini kiriting:",
-        reply_markup=ReplyKeyboardMarkup(
-            keyboard=[
-                [KeyboardButton(text="⬅️ Orqaga")],
-                [KeyboardButton(text="❌ Bekor qilish")]
-            ],
-            resize_keyboard=True
-        )
-    )
-    await callback.answer()
