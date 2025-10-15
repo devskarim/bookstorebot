@@ -2,20 +2,23 @@ from aiogram.types import Message, ReplyKeyboardRemove
 from aiogram import Router, F
 from aiogram.filters import Command, CommandStart
 from aiogram.types.input_media_photo import InputMediaPhoto
-from aiogram.types import FSInputFile, CallbackQuery
+from aiogram.types import FSInputFile, CallbackQuery, InputFile, ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 import logging
 
 from buttons import REG_TEXT, GET_PHONE,ERR_NAME, SUCCES_REG,ALREADY_IN, CAPTION_BOOK, menu_kb
 from buttons import register_kb, phoneNumber_kb, menu_kb, after_menukb, send_toAdminkb
 from buttons import searchClickkb, all_kb, profile_kb,order_ikb, order_kb,skip_kb,phone_user_kb
+from buttons.user import searchClickkb
 from buttons import edit_field_kb, edit_confirm_kb, edit_back_kb, del_account_inkb, re_active_inkb
 from buttons import CONTACT_ADMIN
 from buttons import reply_toUser
 
 from states import conntact_withAdmin, ContactAdmin, Register, FSMContext, EditStates
+from states.book_management import BookSearch, OrderProcess, CartManagement
 from filters import validate_name,validate_uz_phone
 from database import save_users, is_register_byChatId, get_userInfo, update_users, user_dell_acc
 from database import get_user_by_chat_id
+from database.admin_query import get_books_paginated, create_pagination_keyboard, add_to_cart, get_user_cart, remove_from_cart, clear_user_cart, create_order, get_user_orders, get_order_details
 
 
 def check_registration(func):
@@ -40,7 +43,7 @@ def check_registration(func):
             return
 
         filtered_kwargs = {k: v for k, v in kwargs.items()
-                          if k not in ['dispatcher', 'bot', 'event_update']}
+                          if k not in ['dispatcher', 'bot', 'event_update', 'bots']}
 
         return await func(message, *args, **filtered_kwargs)
     return wrapper
@@ -63,7 +66,7 @@ def check_registration_callback(func):
 
 
         filtered_kwargs = {k: v for k, v in kwargs.items()
-                          if k not in ['dispatcher', 'bot', 'event_update']}
+                          if k not in ['dispatcher', 'bot', 'event_update', 'bots']}
 
         return await func(callback, *args, **filtered_kwargs)
     return wrapper
@@ -147,7 +150,7 @@ async def get_phone(message: Message, state: FSMContext):
         await state.clear()
     else:
         await message.answer(
-            "❌ Telefon raqami noto'g'ri. Iltimos, +998901234567 formatida yuboring yoki 'Telefon raqamni yuborish' tugmasidan foydalaning."
+            "❌ Telefon raqami noto'g'ri. Iltimos, +998901234567  formatida yuboring yoki 'Telefon raqamni yuborish' tugmasidan foydalaning."
         )
 
 
@@ -212,7 +215,7 @@ async def my_profile(message: Message, **kwargs):
 
     
 
-@user_router.message(F.text == "🔎 Qidirish")
+@user_router.message(F.text == "🔎 Qidirmoq")
 @check_registration
 async def search_btn(message:Message, **kwargs):
     await message.answer("Qidirish turi: ", reply_markup=searchClickkb)
@@ -246,10 +249,274 @@ async def back_menu(message:Message, **kwargs):
     
 
 @user_router.message(F.text=="🛒 Buyurtma")
-async def order_handler(message:Message, **kwargs):
-    photo_path = FSInputFile("imgs/image2.png")
-    await message.answer("Sizning burutmalaringiz yuklanmoqda...", reply_markup=order_kb)
-    await message.answer_photo(photo=photo_path, caption=CAPTION_BOOK, reply_markup=order_ikb)
+async def order_handler(message: Message, **kwargs):
+    """Show order menu with cart and order history options"""
+    cart_kb = ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="🛒 Savatchani ko'rish"), KeyboardButton(text="📦 Mening buyurtmalarim")],
+            [KeyboardButton(text="⬅️ Orqaga")]
+        ],
+        resize_keyboard=True
+    )
+
+    await message.answer("📋 Buyurtma menyusi:", reply_markup=cart_kb)
+
+@user_router.message(F.text == "🛒 Savatchani ko'rish")
+@check_registration
+async def view_cart(message: Message, **kwargs):
+    """View user's cart"""
+    try:
+        user_id = message.from_user.id
+        cart_items = get_user_cart(user_id)
+
+        if not cart_items:
+            await message.answer(
+                "🛒 Savatcha bo'sh\n\n"
+                "📚 Kitob qidirib, savatchaga qo'shing!",
+                reply_markup=after_menukb
+            )
+            return
+
+        response = "🛒 Sizning savatchangiz:\n\n"
+        total_amount = 0
+
+        for i, item in enumerate(cart_items, 1):
+            quantity = item.get('quantity', 0)
+            price = item.get('price', 0)
+            title = item.get('title', 'Noma\'lum kitob')
+            author = item.get('author', 'Noma\'lum muallif')
+
+            if quantity <= 0 or price <= 0:
+                continue
+
+            item_total = quantity * price
+            total_amount += item_total
+
+            response += f"{i}. 📖 {title}\n"
+            response += f"   👨‍🏫 {author}\n"
+            response += f"   💰 {price} so'm × {quantity} = {item_total} so'm\n\n"
+
+        if total_amount <= 0:
+            await message.answer(
+                "❌ Savatchada xatolik bor. Savatchani tozalab, qaytadan kitob qo'shing.",
+                reply_markup=after_menukb
+            )
+            return
+
+        response += f"💰 Jami: {total_amount} so'm\n\n"
+        response += "📋 Nima qilmoqchisiz?"
+
+        cart_action_kb = ReplyKeyboardMarkup(
+            keyboard=[
+                [KeyboardButton(text="✅ Buyurtma berish"), KeyboardButton(text="🗑️ Savatchani tozalash")],
+                [KeyboardButton(text="⬅️ Orqaga")]
+            ],
+            resize_keyboard=True
+        )
+
+        await message.answer(response, reply_markup=cart_action_kb)
+    except Exception as e:
+        logger.error(f"Error viewing cart for user {message.from_user.id}: {e}")
+        await message.answer(
+            "❌ Savatchani ko'rishda xatolik yuz berdi. Qaytadan urinib ko'ring.",
+            reply_markup=after_menukb
+        )
+
+@user_router.message(F.text == "📦 Mening buyurtmalarim")
+@check_registration
+async def view_orders(message: Message, **kwargs):
+    """View user's order history"""
+    try:
+        user_id = message.from_user.id
+        orders_data = get_user_orders(user_id, page=1, per_page=5)
+
+        if not orders_data['orders']:
+            await message.answer(
+                "📦 Sizda buyurtmalar yo'q\n\n"
+                "📚 Birinchi buyurtmani bering!",
+                reply_markup=after_menukb
+            )
+            return
+
+        response = "📦 Sizning buyurtmalaringiz:\n\n"
+
+        for i, order in enumerate(orders_data['orders'], 1):
+            order_id = order.get('id')
+            total_amount = order.get('total_amount', 0)
+            status = order.get('status', 'unknown')
+            created_at = order.get('created_at', '')
+
+            if not order_id:
+                continue
+
+            status_emoji = {
+                'pending': '⏳',
+                'approved': '✅',
+                'shipped': '📦',
+                'delivered': '🚚',
+                'cancelled': '❌'
+            }
+
+            emoji = status_emoji.get(status, '❓')
+            response += f"{i}. {emoji} Buyurtma #{order_id}\n"
+            response += f"   💰 {total_amount} so'm\n"
+            response += f"   📅 {created_at[:10] if created_at else 'Noma\'lum'}\n"
+            response += f"   📊 Holat: {status}\n\n"
+
+        response += f"📄 Sahifa {orders_data['current_page']}/{orders_data['total_pages']}"
+
+        if orders_data['total_pages'] > 1:
+            from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+
+            nav_buttons = []
+            if orders_data['current_page'] > 1:
+                nav_buttons.append(InlineKeyboardButton(
+                    text="⬅️ Oldingi",
+                    callback_data=f"orders_page_{orders_data['current_page'] - 1}"
+                ))
+            if orders_data['current_page'] < orders_data['total_pages']:
+                nav_buttons.append(InlineKeyboardButton(
+                    text="Keyingi ➡️",
+                    callback_data=f"orders_page_{orders_data['current_page'] + 1}"
+                ))
+
+            keyboard = InlineKeyboardMarkup(inline_keyboard=[nav_buttons] if nav_buttons else [])
+
+            await message.answer(response, reply_markup=keyboard)
+        else:
+            await message.answer(response, reply_markup=after_menukb)
+    except Exception as e:
+        logger.error(f"Error viewing orders for user {message.from_user.id}: {e}")
+        await message.answer(
+            "❌ Buyurtmalarni ko'rishda xatolik yuz berdi. Qaytadan urinib ko'ring.",
+            reply_markup=after_menukb
+        )
+
+@user_router.message(F.text == "✅ Buyurtma berish")
+@check_registration
+async def process_cart_order(message: Message, state: FSMContext):
+    """Process order from cart"""
+    user_id = message.from_user.id
+    cart_items = get_user_cart(user_id)
+
+    if not cart_items:
+        await message.answer("❌ Savatcha bo'sh")
+        return
+
+    total_amount = 0
+    for item in cart_items:
+        if item.get('quantity', 0) > 0 and item.get('price', 0) > 0:
+            total_amount += item['quantity'] * item['price']
+
+    if total_amount <= 0:
+        await message.answer("❌ Savatcha summasi noto'g'ri")
+        return
+
+    await state.set_state(OrderProcess.entering_delivery_info)
+    await state.update_data(cart_order=True, total_amount=total_amount)
+
+    await message.answer(
+        "📍 Yetkazish manzilini kiriting:\n\n"
+        "💡 Masalan: Toshkent shahri, Yunusobod",
+        reply_markup=ReplyKeyboardMarkup(
+            keyboard=[
+                [KeyboardButton(text="⬅️ Orqaga")],
+                [KeyboardButton(text="❌ Bekor qilish")]
+            ],
+            resize_keyboard=True
+        )
+    )
+
+@user_router.message(OrderProcess.entering_delivery_info, F.text.not_in(["⬅️ Orqaga", "❌ Bekor qilish"]))
+@check_registration
+async def get_delivery_info_for_cart(message: Message, state: FSMContext, **kwargs):
+    """Get delivery address for cart order and proceed to payment"""
+    delivery_address = message.text.strip()
+
+    if not delivery_address or len(delivery_address) < 5:
+        await message.answer("❌ Yetkazish manzilini kiriting (masalan: Toshkent shahri, Yunusobod):")
+        return
+
+    await state.update_data(delivery_address=delivery_address)
+
+    data = await state.get_data()
+    total_amount = data.get('total_amount', 0)
+    cart_items = data.get('cart_items', [])  # Savat mahsulotlarini olish
+    user_id = message.from_user.id
+
+    if total_amount <= 0:
+        await message.answer("❌ Buyurtma summasi noto'g'ri")
+        await state.clear()
+        return
+
+    if not cart_items:
+        await message.answer("❌ Savatingiz bo'sh")
+        await state.clear()
+        return
+
+    try:
+        from database.admin_query import create_order, add_order_items, clear_user_cart
+        
+        # 1. Buyurtma yaratish
+        order_id = await create_order(
+            user_id=user_id,
+            delivery_address=delivery_address,
+            payment_type="card",
+            total_amount=total_amount
+        )
+
+        if order_id:
+            # 2. Buyurtma mahsulotlarini qo'shish
+            await add_order_items(order_id, cart_items)
+            
+            # 3. Savatni tozalash (database)
+            await clear_user_cart(user_id)
+            
+            # Buyurtma tafsilotlarini ko'rsatish
+            items_text = "\n".join([
+                f"  • {item['name']} x{item['quantity']} - {item['price'] * item['quantity']} so'm"
+                for item in cart_items
+            ])
+            
+            await message.answer(
+                "✅ Buyurtma muvaffaqiyatli yaratildi!\n\n"
+                f"📦 Buyurtma raqami: #{order_id}\n"
+                f"💰 Summa: {total_amount} so'm\n"
+                f"📍 Manzil: {delivery_address}\n\n"
+                f"📋 Mahsulotlar:\n{items_text}\n\n"
+                "📦 Buyurtmalaringizni ko'rish uchun:\n"
+                "🛒 Buyurtma → 📦 Mening buyurtmalarim",
+                reply_markup=menu_kb
+            )
+            await state.clear()
+        else:
+            await message.answer("❌ Buyurtma yaratishda xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.")
+    except Exception as e:
+        logger.error(f"Error creating cart order: {e}")
+        await message.answer("❌ Texnik xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.")
+@user_router.message(F.text == "🗑️ Savatchani tozalash")
+@check_registration
+async def clear_cart(message: Message, **kwargs):
+    """Clear user's cart"""
+    try:
+        user_id = message.from_user.id
+
+        if clear_user_cart(user_id):
+            await message.answer(
+                "🗑️ Savatcha tozalandi",
+                reply_markup=after_menukb
+            )
+        else:
+            await message.answer(
+                "❌ Savatchani tozalashda xatolik yuz berdi",
+                reply_markup=after_menukb
+            )
+    except Exception as e:
+        logger.error(f"Error clearing cart for user {message.from_user.id}: {e}")
+        await message.answer(
+            "❌ Savatchani tozalashda xatolik yuz berdi. Qaytadan urinib ko'ring.",
+            reply_markup=after_menukb
+        )
 
 
 @user_router.message(F.text == "📄 Ma’lumotlarim")
@@ -590,3 +857,632 @@ async def back_to_field_selection(message: Message, state: FSMContext):
 @check_registration
 async def delate_user(message: Message, **kwargs):
     await message.answer("Rostdan ham o'chirmoqchimisz", reply_markup=del_account_inkb)
+
+
+@check_registration_callback
+@user_router.callback_query(F.data == "title")
+async def search_by_title(callback: CallbackQuery, state: FSMContext):
+    await state.update_data(search_type="title")
+    await callback.message.edit_text("📚 Qaysi sarlavha bo'yicha qidirmoqchisiz?")
+    await state.set_state(BookSearch.waiting_for_search_query)
+    await callback.answer()
+
+@check_registration_callback
+@user_router.callback_query(F.data == "genre")
+async def search_by_genre(callback: CallbackQuery, state: FSMContext):
+    await state.update_data(search_type="genre")
+    await callback.message.edit_text("🎭 Qaysi janr bo'yicha qidirmoqchisiz?")
+    await state.set_state(BookSearch.waiting_for_search_query)
+    await callback.answer()
+
+@check_registration_callback
+@user_router.callback_query(F.data == "author")
+async def search_by_author(callback: CallbackQuery, state: FSMContext):
+    await state.update_data(search_type="author")
+    await callback.message.edit_text("✍️ Qaysi muallif bo'yicha qidirmoqchisiz?")
+    await state.set_state(BookSearch.waiting_for_search_query)
+    await callback.answer()
+
+@check_registration
+@user_router.message(BookSearch.waiting_for_search_query)
+async def process_search_query(message: Message, state: FSMContext):
+    search_query = message.text.strip()
+
+    if not search_query:
+        await message.answer("❌ Qidiruv so'rovi bo'sh bo'lishi mumkin emas!\n\nQaytadan qidiruv so'zini kiriting:")
+        return
+
+    data = await state.get_data()
+    search_type = data.get('search_type')
+
+    if not search_type:
+        await message.answer("❌ Qidirish turi aniqlanmadi. Qaytadan boshlang.")
+        await state.clear()
+        return
+
+    pagination_data = get_books_paginated(page=1, per_page=10, search_query=search_query, search_type=search_type)
+
+    if not pagination_data['books']:
+        # Show available books for user to search
+        all_books = get_books_paginated(page=1, per_page=20)
+        if all_books['books']:
+            book_list = "📚 <b>Mavjud kitoblar:</b>\n\n"
+            for i, book in enumerate(all_books['books'][:10], 1):
+                book_list += f"{i}. 📖 {book['title']} - {book['author']}\n"
+
+            await message.answer(
+                f"❌ <b>{search_type.title()} bo'yicha</b> \"{search_query}\" <b>qidiruvi bo'yicha hech narsa topilmadi</b>\n\n"
+                f"{book_list}\n"
+                "💡 <b>Maslahatlar:</b>\n"
+                "• Kitob nomini to'liq yozing\n"
+                "• Muallif yoki janr bo'yicha qidirib ko'ring\n"
+                "• Imlo xatolarini tekshiring\n\n"
+                "🔍 Boshqa so'z bilan qidiring:",
+                parse_mode="HTML",
+                reply_markup=searchClickkb
+            )
+        else:
+            await message.answer(
+                f"❌ <b>{search_type.title()} bo'yicha</b> \"{search_query}\" <b>qidiruvi bo'yicha hech narsa topilmadi</b>\n\n"
+                "📚 <b>Kitoblar bazasi bo'sh</b>\n\n"
+                "💡 Admin bilan bog'laning yoki keyinroq qayta urinib ko'ring.",
+                parse_mode="HTML",
+                reply_markup=searchClickkb
+            )
+        await state.clear()
+        return
+
+    response = f"📚 <b>{search_type.title()} bo'yicha qidiruv natijalari:</b> \"{search_query}\"\n\n"
+
+    for i, book in enumerate(pagination_data['books'], 1):
+        response += f"{i}. 📖 {book['title']}\n"
+
+    response += f"\n📄 Sahifa {pagination_data['current_page']}/{pagination_data['total_pages']}"
+    response += f"\n📊 Jami {pagination_data['total_count']} ta kitob topildi"
+    response += f"\n\n🔢 Kitobni tanlash uchun raqamni bosing:"
+
+    pagination_keyboard = create_pagination_keyboard(
+        pagination_data['current_page'],
+        pagination_data['total_pages'],
+        search_type,
+        search_query,
+        pagination_data['books']
+    )
+
+    await message.answer(response, reply_markup=pagination_keyboard, parse_mode="HTML")
+    await state.update_data(
+        search_query=search_query,
+        search_type=search_type,
+        current_page=1,
+        total_pages=pagination_data['total_pages']
+    )
+    await state.set_state(BookSearch.pagination)
+
+@check_registration_callback
+@user_router.callback_query(F.data.startswith("page_"))
+async def handle_page_navigation(callback: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    search_query = data.get('search_query')
+    search_type = data.get('search_type')
+
+    try:
+        parts = callback.data.split('_')
+        new_page = int(parts[1])
+        search_type = parts[2] if len(parts) > 2 else search_type
+        search_query = '_'.join(parts[3:]) if len(parts) > 3 else search_query
+
+        pagination_data = get_books_paginated(
+            page=new_page,
+            per_page=10,
+            search_query=search_query,
+            search_type=search_type
+        )
+
+        if not pagination_data['books']:
+            await callback.answer("❌ Bu sahifada kitoblar yo'q")
+            return
+
+        response = f"📚 <b>{search_type.title()} bo'yicha qidiruv natijalari:</b> \"{search_query}\"\n\n"
+
+        for i, book in enumerate(pagination_data['books'], 1):
+            response += f"{i}. 📖 {book['title']}\n"
+
+        response += f"\n📄 Sahifa {pagination_data['current_page']}/{pagination_data['total_pages']}"
+        response += f"\n📊 Jami {pagination_data['total_count']} ta kitob topildi"
+        response += f"\n\n🔢 Kitobni tanlash uchun raqamni bosing:"
+
+        pagination_keyboard = create_pagination_keyboard(
+            pagination_data['current_page'],
+            pagination_data['total_pages'],
+            search_type,
+            search_query,
+            pagination_data['books']
+        )
+
+        await callback.message.edit_text(response, reply_markup=pagination_keyboard, parse_mode="HTML")
+        await state.update_data(current_page=new_page)
+        await callback.answer()
+
+    except (ValueError, IndexError) as e:
+        await callback.answer("❌ Sahifa raqami noto'g'ri")
+    except Exception as e:
+        await callback.answer("❌ Xatolik yuz berdi")
+
+@check_registration_callback
+@user_router.callback_query(F.data.startswith("prev_"))
+async def handle_prev_page(callback: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    current_page = data.get('current_page', 1)
+    search_query = data.get('search_query')
+    search_type = data.get('search_type')
+
+    if current_page <= 1:
+        await callback.answer("❌ Bu birinchi sahifa")
+        return
+
+    new_page = current_page - 1
+
+    pagination_data = get_books_paginated(
+        page=new_page,
+        per_page=10,
+        search_query=search_query,
+        search_type=search_type
+    )
+
+    response = f"📚 <b>{search_type.title()} bo'yicha qidiruv natijalari:</b> \"{search_query}\"\n\n"
+
+    for i, book in enumerate(pagination_data['books'], 1):
+        response += f"{i}. 📖 {book['title']}\n"
+
+    response += f"\n📄 Sahifa {pagination_data['current_page']}/{pagination_data['total_pages']}"
+    response += f"\n📊 Jami {pagination_data['total_count']} ta kitob topildi"
+    response += f"\n\n🔢 Kitobni tanlash uchun raqamni bosing:"
+
+    pagination_keyboard = create_pagination_keyboard(
+        pagination_data['current_page'],
+        pagination_data['total_pages'],
+        search_type,
+        search_query,
+        pagination_data['books']
+    )
+
+    await callback.message.edit_text(response, reply_markup=pagination_keyboard, parse_mode="HTML")
+    await state.update_data(current_page=new_page)
+    await callback.answer()
+
+@check_registration_callback
+@user_router.callback_query(F.data.startswith("next_"))
+async def handle_next_page(callback: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    current_page = data.get('current_page', 1)
+    total_pages = data.get('total_pages', 1)
+    search_query = data.get('search_query')
+    search_type = data.get('search_type')
+
+    if current_page >= total_pages:
+        await callback.answer("❌ Bu oxirgi sahifa")
+        return
+
+    new_page = current_page + 1
+
+    pagination_data = get_books_paginated(
+        page=new_page,
+        per_page=10,
+        search_query=search_query,
+        search_type=search_type
+    )
+
+    response = f"📚 <b>{search_type.title()} bo'yicha qidiruv natijalari:</b> \"{search_query}\"\n\n"
+
+    for i, book in enumerate(pagination_data['books'], 1):
+        response += f"{i}. 📖 {book['title']}\n"
+
+    response += f"\n📄 Sahifa {pagination_data['current_page']}/{pagination_data['total_pages']}"
+    response += f"\n📊 Jami {pagination_data['total_count']} ta kitob topildi"
+    response += f"\n\n🔢 Kitobni tanlash uchun raqamni bosing:"
+
+    response += f"\n📄 Sahifa {pagination_data['current_page']}/{pagination_data['total_pages']}"
+    response += f"\n📊 Jami {pagination_data['total_count']} ta kitob topildi"
+
+    pagination_keyboard = create_pagination_keyboard(
+        pagination_data['current_page'],
+        pagination_data['total_pages'],
+        search_type,
+        search_query,
+        pagination_data['books']
+    )
+
+    await callback.message.edit_text(response, reply_markup=pagination_keyboard, parse_mode="HTML")
+    await state.update_data(current_page=new_page)
+    await callback.answer()
+
+@check_registration_callback
+@user_router.callback_query(F.data.startswith("select_book_"))
+async def handle_book_selection(callback: CallbackQuery, state: FSMContext):
+    try:
+       
+        parts = callback.data.split('_')
+        book_num = int(parts[2])
+        current_page = int(parts[3])
+        search_type = parts[4] if len(parts) > 4 else None
+        search_query = '_'.join(parts[5:]) if len(parts) > 5 else None
+
+        data = await state.get_data()
+        user_search_query = data.get('search_query')
+        user_search_type = data.get('search_type')
+
+        final_search_query = search_query or user_search_query
+        final_search_type = search_type or user_search_type
+
+        if not final_search_query or not final_search_type:
+            await callback.answer("❌ Qidirish ma'lumotlari topilmadi")
+            return
+
+        pagination_data = get_books_paginated(
+            page=current_page,
+            per_page=10,
+            search_query=final_search_query,
+            search_type=final_search_type
+        )
+
+        if not pagination_data['books'] or book_num > len(pagination_data['books']):
+            await callback.answer("❌ Kitob topilmadi")
+            return
+
+        selected_book = pagination_data['books'][book_num - 1]
+
+        if selected_book.get('image_path') and selected_book['image_path'] != 'None':
+            try:
+              
+                photo_path = FSInputFile(selected_book['image_path'])
+                caption = f"📖 <b>{selected_book['title']}</b>\n\n"
+                caption += f"👨‍🏫 Muallif: {selected_book['author']}\n"
+                caption += f"🎭 Janr: {selected_book['genre']}\n"
+                caption += f"💰 Narx: {selected_book['price']} so'm\n"
+                caption += f"📦 Miqdor: {selected_book['quantity']}\n"
+                if selected_book.get('description'):
+                    caption += f"📝 Tavsif: {selected_book['description']}\n"
+                caption += f"🆔 ID: {selected_book['id']}\n\n"
+                caption += "📋 Bu kitobni nima qilmoqchisiz?"
+
+                await callback.message.answer_photo(photo_path, caption=caption, reply_markup=order_ikb, parse_mode="HTML")
+            except Exception as e:
+                
+                response = f"📖 <b>{selected_book['title']}</b>\n\n"
+                response += f"👨‍🏫 Muallif: {selected_book['author']}\n"
+                response += f"🎭 Janr: {selected_book['genre']}\n"
+                response += f"💰 Narx: {selected_book['price']} so'm\n"
+                response += f"📦 Miqdor: {selected_book['quantity']}\n"
+                if selected_book.get('description'):
+                    response += f"📝 Tavsif: {selected_book['description']}\n"
+                response += f"🆔 ID: {selected_book['id']}\n\n"
+                response += "📋 Bu kitobni nima qilmoqchisiz?"
+
+                await callback.message.edit_text(response, reply_markup=order_ikb, parse_mode="HTML")
+        else:
+            #
+            response = f"📖 <b>{selected_book['title']}</b>\n\n"
+            response += f"👨‍🏫 Muallif: {selected_book['author']}\n"
+            response += f"🎭 Janr: {selected_book['genre']}\n"
+            response += f"💰 Narx: {selected_book['price']} so'm\n"
+            response += f"📦 Miqdor: {selected_book['quantity']}\n"
+            if selected_book.get('description'):
+                response += f"📝 Tavsif: {selected_book['description']}\n"
+            response += f"🆔 ID: {selected_book['id']}\n\n"
+            response += "📋 Bu kitobni nima qilmoqchisiz?"
+
+            await callback.message.edit_text(response, reply_markup=order_ikb, parse_mode="HTML")
+        await state.update_data(selected_book=selected_book)
+        await callback.answer()
+
+    except (ValueError, IndexError) as e:
+        await callback.answer("❌ Kitob raqami noto'g'ri")
+    except Exception as e:
+        await callback.answer("❌ Xatolik yuz berdi")
+
+@check_registration_callback
+@user_router.callback_query(F.data == "back_to_search")
+async def back_to_search_menu(callback: CallbackQuery, state: FSMContext):
+    await state.clear()
+    await callback.message.answer("Qidirish turi:", reply_markup=searchClickkb)
+    await callback.answer()
+
+
+def format_book_display_message(book, quantity, total_price, show_description=True):
+    """Helper function to format book display message consistently"""
+    response = f"📖 <b>{book['title']}</b>\n\n"
+    response += f"👨‍🏫 Muallif: {book['author']}\n"
+    response += f"🎭 Janr: {book['genre']}\n"
+    response += f"💰 Narx: {total_price} so'm\n"
+    response += f"📦 Miqdor: {quantity}\n"
+    if show_description and book.get('description'):
+        response += f"📝 Tavsif: {book['description'][:100]}...\n"
+    response += f"🆔 ID: {book['id']}\n\n"
+    response += "📋 Bu kitobni nima qilmoqchisiz?"
+    return response
+
+@check_registration_callback
+@user_router.callback_query(F.data == "decrease_quantity")
+async def decrease_quantity(callback: CallbackQuery, state: FSMContext):
+    """Decrease book quantity in order"""
+    data = await state.get_data()
+    current_quantity = data.get('order_quantity', 1)
+    book = data.get('selected_book')
+
+    if not book:
+        await callback.answer("❌ Kitob topilmadi")
+        return
+
+    if current_quantity > 1:
+        new_quantity = current_quantity - 1
+        total_price = book['price'] * new_quantity
+
+        await state.update_data(order_quantity=new_quantity)
+
+        # Update the message with new quantity and price
+        try:
+            if book.get('image_path') and book['image_path'] != 'None':
+                photo_path = FSInputFile(book['image_path'])
+                new_caption = format_book_display_message(book, new_quantity, total_price)
+                await callback.message.edit_caption(caption=new_caption, reply_markup=order_ikb, parse_mode="HTML")
+            else:
+                new_text = format_book_display_message(book, new_quantity, total_price)
+                await callback.message.edit_text(text=new_text, reply_markup=order_ikb, parse_mode="HTML")
+    
+            await callback.answer(f"✅ Miqdor: {new_quantity}, Jami: {total_price} so'm")
+        except Exception as e:
+            logger.error(f"Failed to update quantity message: {e}")
+            # Fallback: send new message if editing fails
+            try:
+                if book.get('image_path') and book['image_path'] != 'None':
+                    photo_path = FSInputFile(book['image_path'])
+                    new_caption = format_book_display_message(book, new_quantity, total_price)
+                    await callback.message.answer_photo(photo_path, caption=new_caption, reply_markup=order_ikb, parse_mode="HTML")
+                else:
+                    new_text = format_book_display_message(book, new_quantity, total_price)
+                    await callback.message.answer(new_text, reply_markup=order_ikb, parse_mode="HTML")
+                await callback.answer(f"✅ Miqdor: {new_quantity}, Jami: {total_price} so'm")
+            except Exception as e2:
+                logger.error(f"Failed to send fallback message: {e2}")
+                await callback.answer(f"❌ Xatolik: {new_quantity}")
+    else:
+        await callback.answer("❌ Minimal miqdor: 1")
+
+@check_registration_callback
+@user_router.callback_query(F.data == "increase_quantity")
+async def increase_quantity(callback: CallbackQuery, state: FSMContext):
+    """Increase book quantity in order"""
+    data = await state.get_data()
+    current_quantity = data.get('order_quantity', 1)
+    book = data.get('selected_book')
+
+    if not book:
+        await callback.answer("❌ Kitob topilmadi")
+        return
+
+    max_quantity = book.get('quantity', 0)
+    if max_quantity > 0 and current_quantity >= max_quantity:
+        await callback.answer(f"❌ Maksimal miqdor: {max_quantity}")
+        return
+
+    new_quantity = current_quantity + 1
+    total_price = book['price'] * new_quantity
+
+    await state.update_data(order_quantity=new_quantity)
+
+    # Update the message with new quantity and price
+    try:
+        if book.get('image_path') and book['image_path'] != 'None':
+            photo_path = FSInputFile(book['image_path'])
+            new_caption = format_book_display_message(book, new_quantity, total_price)
+            await callback.message.edit_caption(caption=new_caption, reply_markup=order_ikb, parse_mode="HTML")
+        else:
+            new_text = format_book_display_message(book, new_quantity, total_price)
+            await callback.message.edit_text(text=new_text, reply_markup=order_ikb, parse_mode="HTML")
+
+        await callback.answer(f"✅ Miqdor: {new_quantity}, Jami: {total_price} so'm")
+    except Exception as e:
+        logger.error(f"Failed to update quantity message: {e}")
+        # Fallback: send new message if editing fails
+        try:
+            if book.get('image_path') and book['image_path'] != 'None':
+                photo_path = FSInputFile(book['image_path'])
+                new_caption = format_book_display_message(book, new_quantity, total_price)
+                await callback.message.answer_photo(photo_path, caption=new_caption, reply_markup=order_ikb, parse_mode="HTML")
+            else:
+                new_text = format_book_display_message(book, new_quantity, total_price)
+                await callback.message.answer(new_text, reply_markup=order_ikb, parse_mode="HTML")
+            await callback.answer(f"✅ Miqdor: {new_quantity}, Jami: {total_price} so'm")
+        except Exception as e2:
+            logger.error(f"Failed to send fallback message: {e2}")
+            await callback.answer(f"❌ Xatolik: {new_quantity}")
+
+@check_registration_callback
+@user_router.callback_query(F.data == "quantity_display")
+async def show_quantity_info(callback: CallbackQuery, state: FSMContext):
+    """Show current quantity information"""
+    data = await state.get_data()
+    current_quantity = data.get('order_quantity', 1)
+    book = data.get('selected_book')
+
+    if not book:
+        await callback.answer("❌ Kitob topilmadi")
+        return
+
+    total_price = book['price'] * current_quantity
+    await callback.answer(f"📦 Hozirgi miqdor: {current_quantity}\n💰 Jami narx: {total_price} so'm")
+
+@check_registration_callback
+@user_router.callback_query(F.data == "Add_toCard")
+async def add_to_cart_handler(callback: CallbackQuery, state: FSMContext):
+    """Add book to cart"""
+    try:
+        data = await state.get_data()
+        book = data.get('selected_book')
+        quantity = data.get('order_quantity', 1)
+
+        if not book:
+            await callback.answer("❌ Kitob topilmadi")
+            return
+
+        # Validate book data
+        book_id = book.get('id')
+        price = book.get('price', 0)
+
+        if not book_id or price <= 0:
+            await callback.answer("❌ Kitob ma'lumotlari noto'g'ri")
+            return
+
+        if quantity <= 0:
+            await callback.answer("❌ Miqdor noto'g'ri")
+            return
+
+        user_id = callback.from_user.id
+
+        if add_to_cart(user_id, book_id, quantity, price):
+            await callback.answer(f"✅ {quantity} ta kitob savatchaga qo'shildi!")
+            await state.clear()
+        else:
+            await callback.answer("❌ Savatchaga qo'shishda xatolik yuz berdi")
+    except Exception as e:
+        logger.error(f"Error adding to cart for user {callback.from_user.id}: {e}")
+        await callback.answer("❌ Savatchaga qo'shishda texnik xatolik yuz berdi")
+
+@check_registration_callback
+@user_router.callback_query(F.data == "sendItem")
+async def cancel_order(callback: CallbackQuery, state: FSMContext):
+    """Cancel current order"""
+    await state.clear()
+    await callback.message.answer("📋 Asosiy menyu", reply_markup=menu_kb)
+    await callback.answer("✅ Bekor qilindi")
+
+@check_registration_callback
+@user_router.callback_query(F.data == "Cancel_item")
+async def send_order(callback: CallbackQuery, state: FSMContext):
+    """Send order to admin"""
+    data = await state.get_data()
+    book = data.get('selected_book')
+    quantity = data.get('order_quantity', 1)
+
+    if not book:
+        await callback.answer("❌ Kitob topilmadi")
+        return
+
+    user_id = callback.from_user.id
+    total_price = book['price'] * quantity
+
+    await state.update_data(
+        order_book_id=book['id'],
+        order_quantity=quantity,
+        order_price=total_price,
+        selected_book=book
+    )
+
+    await state.set_state(OrderProcess.entering_delivery_info)
+    await callback.message.answer(
+        "📍 Yetkazish manzilini kiriting:\n\n"
+        "💡 Masalan: Toshkent shahri, Yunusobod",
+        reply_markup=ReplyKeyboardMarkup(
+            keyboard=[
+                [KeyboardButton(text="⬅️ Orqaga")],
+                [KeyboardButton(text="❌ Bekor qilish")]
+            ],
+            resize_keyboard=True
+        )
+    )
+    await callback.answer()
+
+@user_router.message(OrderProcess.entering_delivery_info, F.text == "⬅️ Orqaga")
+async def back_from_delivery(message: Message, state: FSMContext, **kwargs):
+    """Go back to book selection"""
+    data = await state.get_data()
+    book = data.get('selected_book')
+
+    if book and book.get('image_path') and book['image_path'] != 'None':
+        try:
+            photo_path = FSInputFile(book['image_path'])
+            caption = f"📖 <b>{book['title']}</b>\n\n"
+            caption += f"💰 Narx: {book['price'] * data.get('order_quantity', 1)} so'm\n"
+            caption += f"📦 Miqdor: {data.get('order_quantity', 1)}\n\n"
+            caption += "📋 Bu kitobni nima qilmoqchisiz?"
+
+            await message.answer_photo(photo_path, caption=caption, reply_markup=order_ikb)
+        except:
+            response = f"📖 <b>{book['title']}</b>\n\n"
+            response += f"💰 Narx: {book['price'] * data.get('order_quantity', 1)} so'm\n"
+            response += f"📦 Miqdor: {data.get('order_quantity', 1)}\n\n"
+            response += "📋 Bu kitobni nima qilmoqchisiz?"
+            await message.answer(response, reply_markup=order_ikb)
+    else:
+        response = f"📖 <b>{book['title']}</b>\n\n"
+        response += f"💰 Narx: {book['price'] * data.get('order_quantity', 1)} so'm\n"
+        response += f"📦 Miqdor: {data.get('order_quantity', 1)}\n\n"
+        response += "📋 Bu kitobni nima qilmoqchisiz?"
+        await message.answer(response, reply_markup=order_ikb)
+
+@user_router.message(OrderProcess.entering_delivery_info, F.text == "❌ Bekor qilish")
+async def cancel_order_process(message: Message, state: FSMContext, **kwargs):
+    await state.clear()
+    await message.answer("✅ Buyurtma bekor qilindi", reply_markup=menu_kb)
+
+@user_router.message(OrderProcess.entering_delivery_info, F.text.not_in(["⬅️ Orqaga", "❌ Bekor qilish"]))
+async def get_delivery_info(message: Message, state: FSMContext, **kwargs):
+    """Get delivery address and create order directly"""
+    delivery_address = message.text.strip()
+
+    if not delivery_address or len(delivery_address) < 5:
+        await message.answer("❌ Yetkazish manzilini kiriting (masalan: Toshkent shahri, Yunusobod):")
+        return
+
+    data = await state.get_data()
+    book_id = data.get('order_book_id')
+    quantity = data.get('order_quantity', 1)
+    price = data.get('order_price', 0)
+    selected_book = data.get('selected_book')
+
+    if not book_id and not selected_book:
+        await message.answer("❌ Kitob ma'lumotlari topilmadi")
+        await state.clear()
+        return
+
+    final_book_id = book_id or (selected_book.get('id') if selected_book else None)
+    final_quantity = quantity or 1
+    final_price = price or (selected_book.get('price', 0) * final_quantity if selected_book else 0)
+
+    if not final_book_id or final_price <= 0:
+        await message.answer("❌ Buyurtma ma'lumotlari noto'g'ri")
+        await state.clear()
+        return
+
+    user_id = message.from_user.id
+
+    try:
+        from database.admin_query import create_order
+        order_id = create_order(
+            user_id=user_id,
+            delivery_address=delivery_address,
+            payment_type="card",
+            total_amount=final_price,
+            book_id=final_book_id,
+            quantity=final_quantity,
+            price=selected_book.get('price', 0) if selected_book else 0
+        )
+
+        if order_id:
+            await message.answer(
+                "✅ Buyurtma muvaffaqiyatli yaratildi!\n\n"
+                f"📦 Buyurtma raqami: #{order_id}\n"
+                f"💰 Summa: {final_price} so'm\n"
+                f"📍 Manzil: {delivery_address}\n\n"
+                "📋 Buyurtmalaringizni ko'rish uchun:\n"
+                "🛒 Buyurtma → 📦 Mening buyurtmalarim",
+                reply_markup=menu_kb
+            )
+            await state.clear()
+        else:
+            await message.answer("❌ Buyurtma yaratishda xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.")
+    except Exception as e:
+        logger.error(f"Error creating single book order: {e}")
+        await message.answer("❌ Texnik xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.")
+
+
