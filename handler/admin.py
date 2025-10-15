@@ -28,8 +28,30 @@ async def get_user(message:Message):
 	await message.answer("Foydalanuvchi rejimiga qaytildi", reply_markup=menu_kb)
 
 
+@admin_router.message(F.text, lambda m: m.from_user.id == int(Admin_ID) and "reply_to" in admin_reply_target)
+async def handle_admin_reply(message: Message):
+    """Handle admin reply when reply_to target is set"""
+    try:
+        target_user_id = admin_reply_target["reply_to"]
+
+        await message.bot.send_message(
+            target_user_id,
+            f"📩 Admin javobi:\n\n{message.text}"
+        )
+        await message.answer("✅ Javob foydalanuvchiga yuborildi.")
+        # Clean up the reply target after successful send
+        if "reply_to" in admin_reply_target:
+            del admin_reply_target["reply_to"]
+    except Exception as e:
+        await message.answer(f"⚠️ Xatolik: {e}")
+        # Clean up on error too
+        if "reply_to" in admin_reply_target:
+            del admin_reply_target["reply_to"]
+
+
 @admin_router.message(F.reply_to_message, lambda m: m.from_user.id == Admin_ID)
 async def reply_to_user(message: Message):
+    """Handle admin reply to forwarded user messages"""
     replied = message.reply_to_message
 
     if replied and "UserID:" in replied.text:
@@ -41,26 +63,10 @@ async def reply_to_user(message: Message):
                 f"📩 Admin javobi:\n\n{message.text}"
             )
             await message.answer("✅ Javob foydalanuvchiga yuborildi.")
+        except (ValueError, IndexError) as e:
+            await message.answer(f"⚠️ Xatolik: Foydalanuvchi ID topilmadi. {e}")
         except Exception as e:
             await message.answer(f"⚠️ Xatolik: {e}")
-
-
-@admin_router.message(F.text, lambda m: m.from_user.id == int(Admin_ID) and "reply_to" in admin_reply_target)
-async def handle_admin_reply(message: Message):
-    try:
-        target_user_id = admin_reply_target["reply_to"]
-
-        await message.bot.send_message(
-            target_user_id,
-            f"📩 Admin javobi:\n\n{message.text}"
-        )
-        await message.answer("✅ Javob foydalanuvchiga yuborildi.")
-        if "reply_to" in admin_reply_target:
-            del admin_reply_target["reply_to"]
-    except Exception as e:
-        await message.answer(f"⚠️ Xatolik: {e}")
-        if "reply_to" in admin_reply_target:
-            del admin_reply_target["reply_to"]
 
 
 @admin_router.message(F.text  == "🛒 Buyurtmalar")
@@ -73,5 +79,15 @@ async def dashboard_handler(message: Message):
      await message.answer("Qurilishda..")
 
 @admin_router.message(F.text == "⬅️ Ortga")
-async def back_handler(message: Message): 
+async def back_handler(message: Message):
     await message.answer("Asosiy menyu", reply_markup=menu_kb)
+
+
+@admin_router.message(F.text == "❌ Bekor qilish", lambda m: m.from_user.id == int(Admin_ID))
+async def cancel_reply_handler(message: Message):
+    """Cancel admin reply mode"""
+    if "reply_to" in admin_reply_target:
+        del admin_reply_target["reply_to"]
+        await message.answer("✅ Javob rejimi bekor qilindi.")
+    else:
+        await message.answer("❌ Javob rejimi faol emas.")
