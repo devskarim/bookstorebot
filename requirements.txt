@@ -19,3 +19,4 @@ python-dotenv==1.1.1
 typing-inspection==0.4.1
 typing_extensions==4.15.0
 yarl==1.20.1
+reportlab==4.0.7
