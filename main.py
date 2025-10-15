@@ -20,8 +20,6 @@ async def main():
     dp.include_router(user_router)
     dp.include_router(admin_callback_router)
     dp.include_router(admin_router)
-
-    print("Starting bot polling...")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
