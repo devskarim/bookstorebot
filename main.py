@@ -1,13 +1,13 @@
 from aiogram import Bot, Dispatcher
 from environs import Env
 from buttons.usercallback import usercall_router
+from buttons.admin_callback import admin_router as admin_callback_router
 import logging
 import asyncio
 import os
 
-from handler.user import user_router
+from handler import user_router
 from handler.admin import admin_router
-from database.query import setup_super_admin
 
 dp = Dispatcher()
 
@@ -15,17 +15,11 @@ dp = Dispatcher()
 async def main():
     env = Env()
     env.read_env()
-
-    super_admin_chat_id = env.str("ADMIN_CHATID")
-    print(f"Setting up super admin with chat_id: {super_admin_chat_id}")
-    setup_super_admin(super_admin_chat_id)
-
-    bot_token = env.str("TOKEN") if env.str("TOKEN") != "None" else "7342211516:AAFG6yUhbxLh0StthZhp0XvnAGSxsP-4zlY"
-    bot = Bot(token=bot_token)
-    print(f"Bot started with token: {bot_token[:20]}...")
-
+    # bot = Bot(token=env.str("TOKEN"))
+    bot = Bot(token="7806379930:AAF1zGcDihe5WoOn47NpNAvtFmp54Abx_DU")
     dp.include_router(usercall_router)
     dp.include_router(user_router)
+    dp.include_router(admin_callback_router)
     dp.include_router(admin_router)
 
     print("Starting bot polling...")
