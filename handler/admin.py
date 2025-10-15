@@ -19,13 +19,13 @@ from database.admin_query import (
 from utils.pdf_generator import generate_books_pdf
 import os
 
-
 admin_router = Router()
 
 env = Env()
 env.read_env()
 
-Admin_ID = env.str("ADMIN_CHATID")
+ADMIN_CHATID = env.str("ADMIN_CHATID")
+Admin_ID = ADMIN_CHATID  # Ensure Admin_ID is defined and matches ADMIN_CHATID
 
 from shared import admin_reply_target
 
@@ -36,9 +36,8 @@ async def admin_handler(message: Message):
 	else:
 		await message.answer("⛔ Sizda admin huquqi yo'q.")
 
-
-@admin_router.message(Command("user")) 
-async def get_user(message:Message): 
+@admin_router.message(Command("user"))
+async def get_user(message:Message, **kwargs):
 	await message.answer("Foydalanuvchi rejimiga qaytildi", reply_markup=menu_kb)
 
 

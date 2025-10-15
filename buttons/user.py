@@ -50,10 +50,8 @@ send_toAdminkb = ReplyKeyboardMarkup(
 
 searchClickkb = InlineKeyboardMarkup(
 	inline_keyboard=[
-		[InlineKeyboardButton(text="📚 Sarlavha", callback_data="title")],
-		[InlineKeyboardButton(text="🎭 Janr", callback_data="genre")],
-		[InlineKeyboardButton(text="✍️ Muallif", callback_data="author")],
-		[InlineKeyboardButton(text="⬅️ Orqaga", callback_data="back")]
+		[InlineKeyboardButton(text="📚 Sarlavha", callback_data="title"),InlineKeyboardButton(text="🎭 Janr", callback_data="genre")],
+		[InlineKeyboardButton(text="✍️ Muallif", callback_data="author"), InlineKeyboardButton(text="⬅️ Orqaga", callback_data="back")],
 	]
 )
 
@@ -68,9 +66,9 @@ all_kb = ReplyKeyboardMarkup (
 order_ikb = InlineKeyboardMarkup(
 	inline_keyboard=[
 		[
-			InlineKeyboardButton(text="➖", callback_data="add_one"),
-			InlineKeyboardButton(text="1", callback_data="add"),
-			InlineKeyboardButton(text="➕", callback_data="minusOne")
+			InlineKeyboardButton(text="➖", callback_data="decrease_quantity"),
+			InlineKeyboardButton(text="1", callback_data="quantity_display"),
+			InlineKeyboardButton(text="➕", callback_data="increase_quantity")
 		],
 		[
 			InlineKeyboardButton(text="❌ Bekor qilish", callback_data="sendItem"),
