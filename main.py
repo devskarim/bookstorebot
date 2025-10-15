@@ -15,14 +15,12 @@ dp = Dispatcher()
 async def main():
     env = Env()
     env.read_env()
-    # bot = Bot(token=env.str("TOKEN"))
-    bot = Bot(token="7806379930:AAF1zGcDihe5WoOn47NpNAvtFmp54Abx_DU")
+    bot = Bot(token=env.str("TOKEN"))
     dp.include_router(usercall_router)
     dp.include_router(user_router)
     dp.include_router(admin_callback_router)
     dp.include_router(admin_router)
 
-    print("Starting bot polling...")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
