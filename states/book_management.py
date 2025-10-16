@@ -34,3 +34,19 @@ class BookManagement(StatesGroup):
 
     # Book details view
     viewing_book_details = State()
+
+
+class BookSearch(StatesGroup):
+    """States for book search functionality"""
+    waiting_for_search_query = State()
+    pagination = State()
+
+
+class OrderProcess(StatesGroup):
+    """States for order processing"""
+    entering_delivery_info = State()
+
+
+class CartManagement(StatesGroup):
+    """States for cart management (placeholder for future use)"""
+    main = State()
