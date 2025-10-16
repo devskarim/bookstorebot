@@ -1,4 +1,5 @@
-from aiogram import Bot, Dispatcher
+from aiogram import Bot, Dispatcher,F
+from aiogram.types import Message
 from environs import Env
 from buttons.usercallback import usercall_router
 from buttons.admin_callback import admin_router as admin_callback_router
@@ -11,6 +12,17 @@ from handler.admin import admin_router
 
 dp = Dispatcher()
 
+
+UNDER_UPGRADE = True
+
+
+@dp.message(F.text)
+async def always_reply_upgrade(message: Message):
+    if UNDER_UPGRADE:
+        await message.answer("🔧 Bot is under upgrade. Please restart again later.")
+        return
+
+    await message.answer("Bot normal ishlayapti.")
 
 async def main():
     env = Env()
