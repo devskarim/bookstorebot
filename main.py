@@ -1,5 +1,5 @@
 from aiogram import Bot, Dispatcher,F
-from aiogram.types import Message
+from aiogram.types import Message, ReplyKeyboardRemove
 from environs import Env
 from buttons.usercallback import usercall_router
 from buttons.admin_callback import admin_router as admin_callback_router
@@ -19,7 +19,7 @@ UNDER_UPGRADE = True
 @dp.message(F.text)
 async def always_reply_upgrade(message: Message):
     if UNDER_UPGRADE:
-        await message.answer("🔧 Bot is under upgrade. Please restart again later.", reply_markup=None)
+        await message.answer("🔧 Bot is under upgrade. Please restart again later.", reply_markup=ReplyKeyboardRemove())
         return
 
     await message.answer("Bot normal ishlayapti.")
