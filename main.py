@@ -19,7 +19,7 @@ UNDER_UPGRADE = True
 @dp.message(F.text)
 async def always_reply_upgrade(message: Message):
     if UNDER_UPGRADE:
-        await message.answer("🔧 Bot is under upgrade. Please restart again later.")
+        await message.answer("🔧 Bot is under upgrade. Please restart again later.", reply_markup=None)
         return
 
     await message.answer("Bot normal ishlayapti.")
